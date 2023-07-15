@@ -1,0 +1,17 @@
+﻿<h2>評価を待っているPost</h2>
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    @foreach (var reviewablePost in Model)
+    {
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h3 class="card-title">@reviewablePost.Post.Title</h3>
+                    <p class="card-text">開催日時: @reviewablePost.Post.Time.ToString("yyyy/MM/dd H:mm")</p>
+                    <p class="card-text">開催場所: @reviewablePost.Post.Place</p>
+                    <p class="card-text">評価対象者: @(reviewablePost.UserToReview.NickName ?? reviewablePost.UserToReview.UserName)</p>
+                    <a href="@Url.Action("CreateReview", new { postId = reviewablePost.Post.PostId, userId = reviewablePost.UserToReview.Id })" class="btn btn-primary">レビューを書く</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>

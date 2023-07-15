@@ -1,0 +1,16 @@
+﻿@model Suket.Models.UserAccount
+@using Suket.Extensions
+
+@{
+    var displayname = Model.NickName ?? Model.UserName;
+    var today = DateOnly.FromDateTime(DateTime.Today);
+    var age = today.Year - Model.Birthday.Year;
+    if (Model.Birthday.AddDays(age) > today) age--;
+}
+
+<h1>@Model.UserName のプロフィール</h1>
+
+<p><strong>表示名:</strong> @displayname</p>
+<p><strong>年齢:</strong> @age</p>
+<p><strong>性別:</strong> @Model.SelectSex.GetDisplayName()</p>
+<p><strong>プロフィール:</strong> @Model.Profile</p>

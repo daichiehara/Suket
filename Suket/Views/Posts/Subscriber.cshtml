@@ -1,0 +1,84 @@
+﻿@using Microsoft.AspNetCore.Identity;
+@model (IEnumerable<UserAccount> Applicants, IEnumerable<UserAccount> Adoptees)
+@inject UserManager<UserAccount> userManager;
+@inject SignInManager<UserAccount> signInManager;
+
+
+@{
+    var currentUser = await userManager.GetUserAsync(User);
+    bool isLoggedIn = signInManager.IsSignedIn(User) && currentUser != null;
+}
+<head>
+    <link rel="stylesheet" href="/css/Subscriber.css" />
+</head>
+
+<div class="container">
+    <div class="list">
+        <h2>応募者一覧</h2>
+        <ul id="applicant-list">
+            @foreach (var user in Model.Applicants)
+            {
+                <li data-user-id="@user.Id">
+                    @(user.NickName ?? user.UserName)
+                    @if (isLoggedIn && (ViewData["PostUserId"].ToString() == currentUser.Id))
+                    {
+                        <button class="adopt-button" data-user-id="@user.Id" data-post-id="@ViewData["PostId"]">採用</button>
+                    }
+                </li>
+            }
+        </ul>
+    </div>
+
+    <div class="list">
+        <h2>採用者一覧</h2>
+        <ul id="adopted-list">
+            @foreach (var user in Model.Adoptees)
+            {
+                <li data-user-id="@user.Id">
+                    @(user.NickName ?? user.UserName)
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        $(function () {
+            // Set the button color to yellow for adopted users on load
+            $('#adopted-list li').each(function () {
+                var userId = $(this).data('user-id');
+                $('.adopt-button[data-user-id=' + userId + ']').css('background-color', 'yellow').prop('disabled', true);
+            });
+
+            $('.adopt-button').click(function () {
+                var button = $(this);
+                var userId = button.data('user-id');
+                var postId = button.data('post-id');
+
+                $.ajax({
+                    url: '/Posts/Adopt',
+                    method: 'POST',
+                    data: { userId: userId, postId: postId },
+                    success: function (data) {
+                        if (data.success) {
+                            if (data.isAdopted) {
+                                // Change the button color to yellow and disable it
+                                button.css('background-color', 'yellow').prop('disabled', true);
+
+                                // Create a copy of the list item and append it to the adopted list
+                                var listItem = $('li[data-user-id=' + userId + ']').clone();
+                                listItem.find('.adopt-button').remove(); // Add this line to remove the button from the clone
+                                listItem.appendTo('#adopted-list');
+                            }
+                        } else {
+                            alert('Error: ' + data.error);
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}
+

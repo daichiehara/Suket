@@ -1,0 +1,262 @@
+﻿@using Microsoft.AspNetCore.Identity;
+@model Suket.Models.Post
+@inject UserManager<UserAccount> userManager;
+@inject SignInManager<UserAccount> signInManager;
+
+
+
+@{
+    ViewData["Title"] = "Details";
+
+    var currentUser = await userManager.GetUserAsync(User);
+    bool isLoggedIn = signInManager.IsSignedIn(User) && currentUser != null;
+
+}
+
+<head>
+    <link rel="stylesheet" href="/css/PostDetails.css" />
+</head>
+@{
+    var successMessage = TempData["SuccessMessage"] as string;
+    if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success" role="alert">
+            @successMessage
+        </div>
+    }
+}
+
+<div>
+    <h4>@Html.DisplayFor(model => model.Title)</h4>
+    <hr />
+    @{
+        var displayName = Model.UserAccount.NickName ?? Model.UserAccount.UserName;
+    }
+    <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@Model.PostId">出席確認</a>
+    <br />
+    <dl class="row">
+        <dt class="col-sm-2">
+            掲載者
+        </dt>
+        <dd class="col-sm-10">
+            <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@Model.UserAccount.UserName">@displayName</a>
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.PeopleCount)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.PeopleCount)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Prefecture)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Prefecture)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Place)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Place)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Time)
+        </dt>
+        <dd class="col-sm-10">
+            @{
+                var timeInJst = TimeZoneInfo.ConvertTimeFromUtc(Model.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time"));
+            }
+            @timeInJst.ToString("yyyy/MM/dd HH:mm")
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Item)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Item)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Reward)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Reward)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Message)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Message)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Genre)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Genre)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Created)
+        </dt>
+        <dd class="col-sm-10">
+            @{
+                var createdInJst = TimeZoneInfo.ConvertTimeFromUtc(Model.Created.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time"));
+            }
+            @createdInJst.ToString("yyyy/MM/dd HH:mm")
+        </dd>
+    </dl>
+</div>
+<div>
+    @if (isLoggedIn && (currentUser != null && Model.UserAccountId == currentUser.Id))
+    {
+        <a asp-action="Edit" asp-route-id="@Model?.PostId">Edit</a>
+    }
+</div>
+
+<div style="display:inline-block;">
+    <button class="subscription-button" style="margin-right:10px;" data-post-id="@Model.PostId">いいね</button>
+    <a asp-action="Index">募集一覧へ</a>
+</div>
+
+<hr />
+<div style="margin-bottom: 20px;">
+    <h3 style="display: inline; margin-right: 20px;">コメント</h3>
+    <span style="margin-right: 10px;"> 掲載者<span class="badge bg-success">✔</span></span>
+    <span style="margin-right: 10px;">採用者<span class="badge bg-yellow">✔</span></span>
+    <span>応募者<span class="badge bg-red">✔</span></span>
+</div>
+
+
+@if (ViewData["Replies"] != null && ((List<Suket.Models.Reply>)ViewData["Replies"]).Count > 0)
+{
+    foreach (var reply in (List<Suket.Models.Reply>)ViewData["Replies"])
+    {
+        
+        var timeDifference = DateTimeOffset.UtcNow - reply.Created;
+        string timeDifferenceString;
+        if (timeDifference.TotalDays >= 1)
+        {
+            timeDifferenceString = $"{(int)timeDifference.TotalDays}日前";
+        }
+        else if (timeDifference.TotalHours >= 1)
+        {
+            timeDifferenceString = $"{(int)timeDifference.TotalHours}時間前";
+        }
+        else if (timeDifference.TotalMinutes >= 1)
+        {
+            timeDifferenceString = $"{(int)timeDifference.TotalMinutes}分前";
+        }
+        else
+        {
+            timeDifferenceString = "たった今";
+        }
+
+        // Check if the current user is adopted or subscribed
+        bool isAdopted = ViewData["AdoptedUsers"] != null && (reply.UserAccountId != Model.UserAccountId) && ((List<string>)ViewData["AdoptedUsers"]).Contains(reply.UserAccountId);
+        bool isSubscribed = ViewData["SubscribedUsers"] != null && (reply.UserAccountId != Model.UserAccountId) && !isAdopted && ((List<string>)ViewData["SubscribedUsers"]).Contains(reply.UserAccountId);
+
+
+        <div class="d-flex align-items-start" style="margin-bottom:10px;">
+            <div class="flex-shrink-0">
+                <p class="mb-0">
+                    <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@reply.UserAccount.UserName">@(reply.UserAccount.NickName ?? reply.UserAccount.UserName)</a>
+                    @if (reply.UserAccountId == Model.UserAccountId)
+                    {
+                        <span class="badge bg-success">✔</span>
+                    }
+                    @if (isAdopted)
+                    {
+                        <span class="badge bg-yellow">✔</span>
+                    }
+                    @if (isSubscribed)
+                    {
+                        <span class="badge bg-red">✔</span>
+                    }
+                    <span style="color: gray;">@timeDifferenceString</span>
+                </p>
+            </div>
+            <div class="flex-grow-1 ms-3">
+                @Html.Raw(System.Net.WebUtility.HtmlEncode(reply.Message).Replace("\n", "<br />"))
+            </div>
+            @if (isLoggedIn && (currentUser != null && reply.UserAccountId == currentUser.Id))
+            {
+                <form asp-controller="Replies" asp-action="DeleteReply" asp-route-id="@reply.ReplyId" class="ml-auto">
+                    <input type="hidden" name="ReplyId" value="@reply.ReplyId" />
+                    <button type="submit" class="btn btn-danger btn-sm" style="margin-left:10px;">削除</button>
+                </form>
+            }
+        </div>
+
+
+    }
+}
+else
+{
+    <p>質問やコメントができます。</p>
+}
+
+<!-- Begin Reply Form -->
+<div style="position: fixed; bottom: 5%; width: 80%; background: #f8f9fa; padding: 10px;">
+    <form id="message-form" asp-action="CreateReply" asp-controller="Posts" method="post" style="display: flex;">
+        <input type="hidden" name="PostId" value="@Model.PostId" />
+        <textarea id="message" name="Message" class="form-control" style="flex-grow: 1; margin-right: 10px; border: 2px solid #007bff; box-shadow: 2px 2px 5px rgba(0,0,0,0.2);" rows="1" placeholder="ここで質問やコメントができます。" maxlength="200"></textarea>
+        <button type="submit" class="btn btn-primary" style="width: 80px;">送信</button>
+    </form>
+</div>
+
+<!-- End Reply Form -->
+
+<a asp-action="Index">募集一覧へ</a>
+<br />
+<br />
+
+<script>
+    document.querySelector('#message').addEventListener('keydown', function(e) {
+        if (e.key == 'Enter' && !e.shiftKey) { // Shiftキーが押されていないときだけ送信する
+            e.preventDefault(); // Enterによる新しい行の作成を防ぐ
+            document.querySelector('#message-form').submit(); // フォームを送信する
+        }
+    });
+</script>
+
+@section Scripts {
+    <script>
+        $(function () {
+            // Initialize button colors based on whether the user has liked each post
+            $('.subscription-button').each(function () {
+                var button = $(this);
+                var postId = button.data('post-id');
+                var isLikedByUser = @Html.Raw(Json.Serialize((Dictionary<int, bool>)ViewData["UserSubscriptionPosts"]));
+                var isAdoptedByUser = @Html.Raw(Json.Serialize((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]));
+
+                // Check if the user has liked the post
+                if (isLikedByUser[postId]) {
+                    // Check if the user is the adopted user for this post
+                    if (isAdoptedByUser[postId]) {
+                        button.addClass('liked-adopted');
+                        button.prop('disabled', true);
+                    } else {
+                        button.addClass('liked');
+                    }
+                }
+            });
+
+            // Handle button clicks
+            $('.subscription-button').click(function () {
+                var button = $(this);
+                var postId = button.data('post-id');
+
+                $.ajax({
+                    url: '/Posts/ToggleSubscription',
+                    method: 'POST',
+                    data: { id: postId },
+                    success: function (data) {
+                        // Check if the button has the 'liked' class
+                        if (button.hasClass('liked')) {
+                            button.removeClass('liked');
+                        } else {
+                            button.addClass('liked');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}

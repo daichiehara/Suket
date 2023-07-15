@@ -1,0 +1,18 @@
+﻿body {
+}
+
+.subscription-button.liked {
+    background-color: red;
+}
+
+.subscription-button.liked-adopted {
+    background-color: yellow;
+}
+
+.bg-yellow {
+    background-color: yellow !important;
+}
+
+.bg-red {
+    background-color: red !important;
+}

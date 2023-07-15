@@ -1,0 +1,150 @@
+﻿@using Microsoft.AspNetCore.Identity;
+@model IEnumerable<Suket.Models.Post>
+@inject UserManager<UserAccount> userManager;
+@inject SignInManager<UserAccount> signInManager;
+
+@{
+    var currentUser = await userManager.GetUserAsync(User);
+    bool isLoggedIn = signInManager.IsSignedIn(User) && currentUser != null;
+}
+<head>
+    <link rel="stylesheet" href="/css/PostIndex.css" />
+</head>
+
+
+<h1>自分の募集</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+
+<div class="post-container">
+    @foreach (var a in Model)
+    {
+        <section class="post">
+            @if (a.State == State.End)
+            {
+                <div class="end-banner">募集終了</div>
+            }
+            @{
+                var timeDifference = DateTimeOffset.UtcNow - a.Created;
+                string timeDifferenceString;
+                if (timeDifference.TotalDays >= 1)
+                {
+                    timeDifferenceString = $"{(int)timeDifference.TotalDays}日前";
+                }
+                else if (timeDifference.TotalHours >= 1)
+                {
+                    timeDifferenceString = $"{(int)timeDifference.TotalHours}時間前";
+                }
+                else if (timeDifference.TotalMinutes >= 1)
+                {
+                    timeDifferenceString = $"{(int)timeDifference.TotalMinutes}分前";
+                }
+                else
+                {
+                    timeDifferenceString = "たった今";
+                }
+            }
+            <h5><a asp-action="Details" asp-route-id="@a.PostId">@((a.Title.Length > 17) ? a.Title.Substring(0, 17) + "..." : a.Title)</a></h5>
+            <p><a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName">@(a.UserAccount.NickName ?? a.UserAccount.UserName)</a>・@timeDifferenceString</p>
+            <p>@Html.DisplayFor(modelItem => a.Prefecture)</p>
+            <p>@a.Place</p>
+            <p>@TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")</p>
+            <p>@a.Reward　円</p>
+            <pre style="white-space: pre-wrap;">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre>
+            <p>@Html.DisplayFor(modelItem => a.Genre)</p>
+            <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
+
+            <button class="subscription-button" data-post-id="@a.PostId">いいね</button>
+            <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
+
+            @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
+            {
+                var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
+                var adoptionExists = adoptions.ContainsKey(a.PostId) && adoptions[a.PostId];
+
+                <p>
+                    <a asp-action="Subscriber" asp-route-id="@a.PostId">応募者一覧</a>
+                    @if (a.State == State.Recruiting)
+                    {
+                        <span> | </span>
+                        <a asp-action="Edit" asp-route-id="@a.PostId">Edit</a>
+                    }
+                    @if (!adoptionExists && a.State == State.Recruiting)
+                    {
+                        <span> | </span>
+                        <a asp-action="Delete" asp-route-id="@a.PostId">削除</a>
+                    }
+                </p>
+            }
+
+
+        </section>
+    }
+</div>
+@{
+    var errorMessage = ViewData["ErrorMessage"] as string;
+}
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">
+        @errorMessage
+    </div>
+}
+
+@section Scripts {
+    <script>
+        $(function () {
+            // Initialize button colors based on whether the user has liked each post
+            $('.subscription-button').each(function () {
+                var button = $(this);
+                var postId = button.data('post-id');
+                var isLikedByUser = @Html.Raw(Json.Serialize((Dictionary<int, bool>)ViewData["UserSubscriptionPosts"]));
+                var isAdoptedByUser = @Html.Raw(Json.Serialize((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]));
+
+                // Check if the user has liked the post
+                if (isLikedByUser[postId]) {
+                    // Check if the user is the adopted user for this post
+                    if (isAdoptedByUser[postId]) {
+                        button.addClass('liked-adopted');
+                        button.prop('disabled', true);
+                    } else {
+                        button.addClass('liked');
+                    }
+                }
+            });
+
+            // Handle button clicks
+            $('.subscription-button').click(function () {
+                var button = $(this);
+                var countSpan = button.next('.subscription-count');
+                var postId = button.data('post-id');
+
+                // Get the current like count
+                var count = parseInt(countSpan.text());
+
+                $.ajax({
+                    url: '/Posts/ToggleSubscription',
+                    method: 'POST',
+                    data: { id: postId },
+                    success: function (data) {
+                        // Check if the button has the 'liked' class
+                        if (button.hasClass('liked')) {
+                            // If the button has the 'liked' class, decrement the count and remove the class
+                            if (count > 0) {
+                                countSpan.text(count - 1);
+                            }
+                            button.removeClass('liked');
+                        } else {
+                            // If the button does not have the 'liked' class, increment the count and add the class
+                            countSpan.text(count + 1);
+                            button.addClass('liked');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}

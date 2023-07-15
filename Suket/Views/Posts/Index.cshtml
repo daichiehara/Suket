@@ -1,0 +1,340 @@
+﻿@using Microsoft.AspNetCore.Identity;
+@model IEnumerable<Suket.Models.Post>
+@inject UserManager<UserAccount> userManager;
+@inject SignInManager<UserAccount> signInManager;
+
+@{
+    ViewData["Title"] = "Index";
+
+    var currentUser = await userManager.GetUserAsync(User);
+    bool isLoggedIn = signInManager.IsSignedIn(User) && currentUser != null;
+}
+
+@{
+    var selectedGenre = ViewData["SelectedGenre"] as Genre?;
+    var selectedPrefecture = ViewData["CurrentPrefecture"] as Prefecture?;
+    var currentSearch = ViewData["CurrentSearch"] as string;
+    var hitCount = Model.Count(); // 検索結果の件数を取得
+}
+
+<head>
+    <link rel="stylesheet" href="/css/PostIndex.css" />
+</head>
+
+<style>
+    select.form-control {
+        background-color: #fff;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        appearance: menulist-button; /* これで少しプルダウンらしさを出すことが可能です */
+    }
+</style>
+
+
+<div class="d-flex justify-content-between align-items-center">
+    <h3 class="mr-3">募集一覧</h3>
+    <button id="filterButton" class="ml-auto d-flex align-items-center">
+        <svg style="margin-right:5px;" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="humbleicons hi-adjustments ml-2">
+            <path xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 6v-.5M17.5 4v5m0 11v-5.56M6.5 4v2m0 14v-8.44M6.5 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm5.5 8a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm5.5-5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
+        </svg>
+        絞り込み
+    </button>
+</div>
+
+
+<div id="filterForm" class="d-none position-fixed bg-white rounded shadow-sm p-3" style="top: 0; right: 0; width: 80%; max-width: 600px; z-index: 100;">
+    <button id="closeButton" class="close">×</button>
+    <form asp-action="Index" method="get">
+        <div class="form-group">
+            <input type="text" class="form-control" name="searchString" placeholder="キーワードを入力..." value="@ViewData["CurrentSearch"]" />
+        </div>
+        <div class="form-row">
+            <div class="form-group col-sm-6">
+                <label for="genre">ジャンル</label>
+                <select name="genre" id="genre" class="form-control">
+                    <option value="">すべて</option>
+                    @if (selectedGenre == Genre.Baseball)
+                    {
+                        <option value="Baseball" selected>野球</option>
+                    }
+                    else
+                    {
+                        <option value="Baseball">野球</option>
+                    }
+                    @if (selectedGenre == Genre.Soccer)
+                    {
+                        <option value="Soccer" selected>サッカー</option>
+                    }
+                    else
+                    {
+                        <option value="Soccer">サッカー</option>
+                    }
+                    @if (selectedGenre == Genre.Q)
+                    {
+                        <option value="Q" selected>その他</option>
+                    }
+                    else
+                    {
+                        <option value="Q">その他</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group col-sm-6">
+                <label for="prefecture">都道府県</label>
+                <select name="prefecture" id="prefecture" class="form-control">
+                    <option value="">すべて</option>
+                    @foreach (Prefecture prefecture in Enum.GetValues(typeof(Prefecture)))
+                    {
+                        if ((Prefecture?)ViewData["CurrentPrefecture"] == prefecture)
+                        {
+                            <option value="@prefecture" selected>@Html.DisplayFor(_ => prefecture)</option>
+                        }
+                        else
+                        {
+                            <option value="@prefecture">@Html.DisplayFor(_ => prefecture)</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">検索</button>
+    </form>
+</div>
+
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+
+<button id="sendGreetingButton" class="btn btn-primary">挨拶を送る</button>
+<button id="delete-stripe-account">Delete Stripe Account</button>
+
+
+
+@if (!string.IsNullOrWhiteSpace(currentSearch) || selectedGenre.HasValue || selectedPrefecture.HasValue)
+{
+    <div>
+        <h4>
+            @if (selectedGenre.HasValue)
+            {
+                <text>ジャンル「@Html.DisplayFor(_ => selectedGenre)」、</text>
+            }
+            @if (selectedPrefecture.HasValue)
+            {
+                <text>都道府県「@Html.DisplayFor(_ => selectedPrefecture)」、</text>
+            }
+            @if (!string.IsNullOrWhiteSpace(currentSearch))
+            {
+                <text>「@currentSearch」</text>
+            }
+            の検索結果（@hitCount 件）
+        </h4>
+    </div>
+}
+
+<div class="post-container">
+    @foreach (var a in Model)
+    {
+        <section class="post">
+            @{
+                var timeDifference = DateTimeOffset.UtcNow - a.Created;
+                string timeDifferenceString;
+                if (timeDifference.TotalDays >= 1)
+                {
+                    timeDifferenceString = $"{(int)timeDifference.TotalDays}日前";
+                }
+                else if (timeDifference.TotalHours >= 1)
+                {
+                    timeDifferenceString = $"{(int)timeDifference.TotalHours}時間前";
+                }
+                else if (timeDifference.TotalMinutes >= 1)
+                {
+                    timeDifferenceString = $"{(int)timeDifference.TotalMinutes}分前";
+                }
+                else
+                {
+                    timeDifferenceString = "たった今";
+                }
+            }
+            <h5><a asp-action="Details" asp-route-id="@a.PostId">@((a.Title.Length > 17) ? a.Title.Substring(0, 17) + "..." : a.Title)</a></h5>
+            <p><a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName">@(a.UserAccount.NickName ?? a.UserAccount.UserName)</a>・@timeDifferenceString</p>
+            <p>@Html.DisplayFor(modelItem => a.Prefecture)</p>
+            <p>@a.Place</p>
+            <p>@TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")</p>
+            <p>@a.Reward　円</p>
+            <pre style="white-space: pre-wrap;">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre>
+            <p>@Html.DisplayFor(modelItem => a.Genre)</p>
+            @{
+                var userAdoptionPosts = ViewData["UserAdoptionPosts"] as Dictionary<int, bool>;
+                var isAdopted = userAdoptionPosts?[a.PostId] ?? false;
+            }
+
+            @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
+            {
+                <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
+            }
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <button class="subscription-button" data-post-id="@a.PostId">いいね</button>
+                    <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
+                </div>
+                @if (isAdopted)
+                {
+                    <div style="margin-left: auto;">
+                        <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId" class="btn btn-success">出席確認</a>
+                    </div>
+                }
+            </div>
+
+
+
+            @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
+            {
+                var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
+                var adoptionExists = adoptions.ContainsKey(a.PostId) && adoptions[a.PostId];
+
+                <p>
+                    <a asp-action="Subscriber" asp-route-id="@a.PostId">応募者一覧</a>
+                    <a asp-action="Edit" asp-route-id="@a.PostId">Edit</a>
+                    @if (!adoptionExists)
+                    {
+                        <span> | </span>
+                        <a asp-action="Delete" asp-route-id="@a.PostId">削除</a>
+                    }
+                </p>
+            }
+
+
+        </section>
+    }
+</div>
+@{
+    var errorMessage = ViewData["ErrorMessage"] as string;
+}
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">
+        @errorMessage
+    </div>
+}
+
+@section Scripts {
+    <script>
+        async function checkUserHasStripeAccount() {
+            var result = false;
+            // Make Ajax request to your server-side endpoint to check if the user has a Stripe account
+            await $.ajax({
+                url: '/Stripe/HasStripeAccount', // replace this with your server-side endpoint
+                type: 'GET',
+                success: function (data) {
+                    result = data.hasStripeAccount;
+                },
+                error: function (error) {
+                    console.error('Error while checking if user has Stripe account', error);
+                }
+            });
+
+            return result;
+        }
+
+        $(function () {
+            // Initialize button colors based on whether the user has liked each post
+            $('.subscription-button').each(function () {
+                var button = $(this);
+                var postId = button.data('post-id');
+                var isLikedByUser = @Html.Raw(Json.Serialize((Dictionary<int, bool>)ViewData["UserSubscriptionPosts"]));
+                var isAdoptedByUser = @Html.Raw(Json.Serialize((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]));
+
+                // Check if the user has liked the post
+                if (isLikedByUser[postId]) {
+                    // Check if the user is the adopted user for this post
+                    if (isAdoptedByUser[postId]) {
+                        button.addClass('liked-adopted');
+                        button.prop('disabled', true);
+                    } else {
+                        button.addClass('liked');
+                    }
+                }
+            });
+
+            // Handle button clicks
+            $('.subscription-button').click(async function () {
+                var button = $(this);
+                var countSpan = button.next('.subscription-count');
+                var postId = button.data('post-id');
+
+                const hasStripeAccount = await checkUserHasStripeAccount();
+
+                if (!hasStripeAccount) {
+                    // If the user does not have a Stripe account, request to create one
+                    var confirmResult = confirm("報酬を受け取るには銀行口座の登録が必要です。作成しますか？（口座を登録しないと応募はできません。）");
+                    if (confirmResult) {
+                        window.location.href = '/Stripe/CreateAccount';
+                    }
+                    return;
+                }
+                // Get the current like count
+                var count = parseInt(countSpan.text());
+
+                $.ajax({
+                    url: '/Posts/ToggleSubscription',
+                    method: 'POST',
+                    data: { id: postId },
+                    success: function (data) {
+                        // Check if the button has the 'liked' class
+                        if (button.hasClass('liked')) {
+                            // If the button has the 'liked' class, decrement the count and remove the class
+                            if (count > 0) {
+                                countSpan.text(count - 1);
+                            }
+                            button.removeClass('liked');
+                        } else {
+                            // If the button does not have the 'liked' class, increment the count and add the class
+                            countSpan.text(count + 1);
+                            button.addClass('liked');
+                        }
+                    }
+                });
+            });
+        });
+        
+        document.getElementById('filterButton').addEventListener('click', function() {
+        const filterForm = document.getElementById('filterForm');
+        filterForm.classList.toggle('d-none');
+        });
+        document.getElementById('closeButton').addEventListener('click', function() {
+            document.getElementById('filterForm').classList.add('d-none');
+        });
+
+        document.getElementById('sendGreetingButton').addEventListener('click', function () {
+            $.ajax({
+                url: '/Posts/SendGreeting',
+                method: 'POST',
+                success: function (data) {
+                    alert('挨拶メールを送信しました！');
+                }
+            });
+        });
+
+        $(document).ready(function () {
+            $('#delete-stripe-account').click(function () {
+                $.ajax({
+                    url: '/Stripe/DeleteStripeAccount',
+                    type: 'POST',
+                    success: function () {
+                        alert('Stripe account successfully deleted');
+                    },
+                    error: function (error) {
+                        console.error('Error while deleting Stripe account', error);
+                    }
+                });
+            });
+        });
+
+
+
+    </script>
+        
+}

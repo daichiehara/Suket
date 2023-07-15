@@ -1,0 +1,27 @@
+﻿@using Microsoft.AspNetCore.Identity;
+@model VerifyAttendanceViewModel;
+@inject UserManager<UserAccount> userManager;
+@{
+    var currentUser = await userManager.GetUserAsync(User);
+}
+
+<h2>認証</h2>
+<p>当日参加したことを確認するための認証です。認証されないと報酬は受け取れません。</p>
+<br />
+<p>タイトル： @ViewData["PostTitle"]</p>
+<p>開催場所：@ViewData["PostPlace"]</p>
+
+<form asp-action="VerifyAttendance" asp-controller="RollCalls" method="post">
+    <input type="hidden" asp-for="@Model.PostId" value="@ViewData["PostId"]" />
+    <input type="hidden" asp-for="@Model.UserAccountId" value="@currentUser.Id" />
+
+    <div class="form-group">
+        <label asp-for="CertificationCode"></label>
+        <input type="number" asp-for="CertificationCode" class="form-control" required />
+        <span asp-validation-for="CertificationCode" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">送信</button>
+</form>
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>

@@ -1,0 +1,47 @@
+﻿@model Suket.Models.Review
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create</h1>
+
+<h4>Review</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="MannerLevel" class="control-label"></label>
+                <input asp-for="MannerLevel" class="form-control" />
+                <span asp-validation-for="MannerLevel" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="SkillLevel" class="control-label"></label>
+                <input asp-for="SkillLevel" class="form-control" />
+                <span asp-validation-for="SkillLevel" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ReviewerId" class="control-label"></label>
+                <select asp-for="ReviewerId" class ="form-control" asp-items="ViewBag.ReviewerId"></select>
+            </div>
+            <div class="form-group">
+                <label asp-for="ReviewedId" class="control-label"></label>
+                <select asp-for="ReviewedId" class ="form-control" asp-items="ViewBag.ReviewedId"></select>
+            </div>
+            <div class="form-group">
+                <label asp-for="PostId" class="control-label"></label>
+                <select asp-for="PostId" class ="form-control" asp-items="ViewBag.PostId"></select>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
