@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing.Printing;
 using System.Linq;
 using System.Resources;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Stripe;
 using Suket.Data;
 using Suket.Models;
+using X.PagedList;
 
 namespace Suket.Controllers
 {
@@ -23,6 +25,7 @@ namespace Suket.Controllers
         private readonly SignInManager<UserAccount> _signInManager;
         private readonly ISuketEmailSender _emailSender;
         private readonly INotificationService _notificationService;
+
 
         public PostsController(ApplicationDbContext context, UserManager<UserAccount> userManager, SignInManager<UserAccount> signInManager, ISuketEmailSender emailSender, INotificationService notificationService)
         {
@@ -35,12 +38,13 @@ namespace Suket.Controllers
 
         // GET: Posts
         [HttpGet]
-        public async Task<IActionResult> Index(Genre? genre = null, Prefecture? prefecture = null, string? searchString = null)
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 9, Genre? genre = null, Prefecture? prefecture = null, string? searchString = null)
         {
-            return View(await GetPosts(genre, prefecture, searchString));
+            var model = await GetPosts(page, pageSize, genre, prefecture, searchString);
+            return View(model);
         }
 
-        private async Task<List<Post>> GetPosts(Genre? genre, Prefecture? prefecture, string? searchString = null)
+        private async Task<PostIndexViewModel> GetPosts(int page, int pageSize, Genre? genre, Prefecture? prefecture, string? searchString = null)
         {
             var currentUser = await _userManager.GetUserAsync(User);
 
@@ -67,7 +71,11 @@ namespace Suket.Controllers
                 postsQuery = postsQuery.Where(p => p.Title.Contains(searchString) || p.Message.Contains(searchString));
             }
 
-            var posts = await postsQuery.ToListAsync();
+            // ここで、ページングを適用します
+            var posts = await postsQuery.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            // 全投稿数を取得します
+            var totalPosts = await postsQuery.CountAsync();
+            
 
             // Like counts for each post
             var subscriptionCounts = posts.ToDictionary(
@@ -108,7 +116,14 @@ namespace Suket.Controllers
             ViewData["UserSubscriptionPosts"] = userSubscriptionPosts;
             ViewData["UserAdoptionPosts"] = userAdoptionPosts;
 
-            return posts;
+            //return posts;
+            return new PostIndexViewModel
+            {
+                Posts = posts,
+                CurrentPage = page,
+                TotalPages = (int)Math.Ceiling(totalPosts / (double)pageSize),
+                // 他のプロパティもここで設定します
+            };
         }
 
 
@@ -555,7 +570,7 @@ namespace Suket.Controllers
             return View(userSubscriptions);
         }
 
-        public async Task<IActionResult> MyPosts()
+        public async Task<IActionResult> MyPosts(int? page)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -598,8 +613,15 @@ namespace Suket.Controllers
             ViewData["SubscriptionCounts"] = subscriptionCounts;
             ViewData["UserSubscriptionPosts"] = userSubscriptionPosts;
             ViewData["UserAdoptionPosts"] = userAdoptionPosts;
-            return View(myPosts);
+
+            // Using ToPagedList extension method from X.PagedList.Mvc.Core
+            int pageNumber = (page ?? 1);
+            var onePageOfPosts = myPosts.ToPagedList(pageNumber, 15); // 15 posts per page
+
+            return View(onePageOfPosts);
         }
+
+
 
         [HttpPost]
         public async Task<IActionResult> CreateReply(int PostId, string Message)

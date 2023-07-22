@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Suket.Data;
 using Suket.Models;
 
@@ -219,6 +220,70 @@ namespace Suket.Controllers
 
             return View(reviewablePostsList);
         }
+
+        // GET: Reviews/CreateReview
+        public IActionResult CreateReview(int postId, string userId)
+        {
+            var post = _context.Post.FirstOrDefault(p => p.PostId == postId);
+            var user = _context.Users.FirstOrDefault(u => u.Id == userId);
+
+            ViewData["PostId"] = postId;
+            ViewData["UserId"] = userId;
+
+            string displayName = user.NickName ?? user.UserName;
+            ViewData["ReviewedUserName"] = displayName;
+
+            if (post == null || user == null)
+            {
+                return NotFound();
+            }
+
+            var review = new Review
+            {
+                PostId = postId,
+                ReviewedId = userId
+            };
+
+            return View(review);
+        }
+
+        // POST: Reviews/CreateReview
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateReview(Review review)
+        {
+            if (ModelState.IsValid)
+            {
+                _context.Add(review);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(ReviewablePosts));
+            }
+
+            if (!ModelState.IsValid)
+            {
+                // Validation failed, print the errors
+                List<string> errorMessages = new List<string>();
+                foreach (var modelState in ViewData.ModelState.Values)
+                {
+                    foreach (var error in modelState.Errors)
+                    {
+                        errorMessages.Add(error.ErrorMessage);
+                    }
+                }
+
+                // Pass error messages to the view
+                ViewData["Errors"] = errorMessages;
+
+                // Return to the view with the model containing errors
+                return View(review);
+            }
+
+            ViewData["PostId"] = new SelectList(_context.Post, "PostId", "Item", review.PostId);
+            ViewData["ReviewedId"] = new SelectList(_context.Users, "Id", "Id", review.ReviewedId);
+
+            return View(review);
+        }
+
 
     }
 }

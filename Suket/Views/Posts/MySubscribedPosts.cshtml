@@ -1,4 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Identity;
+@using X.PagedList;
+@using X.PagedList.Mvc.Core;
+@using X.PagedList.Mvc.Bootstrap4.Core;
 @model IEnumerable<Suket.Models.Post>
 @inject UserManager<UserAccount> userManager;
 @inject SignInManager<UserAccount> signInManager;
@@ -18,83 +21,88 @@
 
 <div>
 採用された投稿のみ
-<label class="switch">
-    <input type="checkbox" id="showAdoptedToggle">
-    <span class="slider round"></span>
-</label>
+    <label class="switch">
+        <input type="checkbox" id="showAdoptedToggle">
+        <span class="slider round"></span>
+    </label>
 </div>
 
 
 
-<div class="post-container">
-    @foreach (var a in Model)
-    {
-        <section class="post">
-            @if (a.State == State.End)
-            {
-                <div class="end-banner">募集終了</div>
-            }
-            @{
-                var timeDifference = DateTimeOffset.UtcNow - a.Created;
-                string timeDifferenceString;
-                if (timeDifference.TotalDays >= 1)
-                {
-                    timeDifferenceString = $"{(int)timeDifference.TotalDays}日前";
-                }
-                else if (timeDifference.TotalHours >= 1)
-                {
-                    timeDifferenceString = $"{(int)timeDifference.TotalHours}時間前";
-                }
-                else if (timeDifference.TotalMinutes >= 1)
-                {
-                    timeDifferenceString = $"{(int)timeDifference.TotalMinutes}分前";
-                }
-                else
-                {
-                    timeDifferenceString = "たった今";
-                }
-            }
-            <h5><a asp-action="Details" asp-route-id="@a.PostId">@((a.Title.Length > 17) ? a.Title.Substring(0, 17) + "..." : a.Title)</a></h5>
-            <p><a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName">@(a.UserAccount.NickName ?? a.UserAccount.UserName)</a>・@timeDifferenceString</p>
-            <p>@Html.DisplayFor(modelItem => a.Prefecture)</p>
-            <p>@a.Place</p>
-            <p>@TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")</p>
-            <p>@a.Reward　円</p>
-            <pre style="white-space: pre-wrap;">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre>
-            <p>@Html.DisplayFor(modelItem => a.Genre)</p>
-            <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId">出席確認</a>
-            @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
-            {
-                <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
-            }
-
-            <button class="subscription-button" data-post-id="@a.PostId">いいね</button>
-            <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
-
-            @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
-            {
-                var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
-                var adoptionExists = adoptions.ContainsKey(a.PostId) && adoptions[a.PostId];
-
-                <p>
-                    <a asp-action="Subscriber" asp-route-id="@a.PostId">応募者一覧</a>
-                    @if (a.State == State.Recruiting)
+<div class="container">
+    <div class="row">
+        @foreach (var a in Model)
+        {
+            <div class="col-md-4">
+                <div class="card">
+                    @if (a.State == State.End)
                     {
-                        <span> | </span>
-                        <a asp-action="Edit" asp-route-id="@a.PostId">Edit</a>
+                        <div class="end-banner">募集終了</div>
                     }
-                    @if (!adoptionExists && a.State == State.Recruiting)
-                    {
-                        <span> | </span>
-                        <a asp-action="Delete" asp-route-id="@a.PostId">削除</a>
-                    }
-                </p>
-            }
+                    <div class="card-body">
+                        @{
+                            var timeDifference = DateTimeOffset.UtcNow - a.Created;
+                            string timeDifferenceString;
+                            if (timeDifference.TotalDays >= 1)
+                            {
+                                timeDifferenceString = $"{(int)timeDifference.TotalDays}日前";
+                            }
+                            else if (timeDifference.TotalHours >= 1)
+                            {
+                                timeDifferenceString = $"{(int)timeDifference.TotalHours}時間前";
+                            }
+                            else if (timeDifference.TotalMinutes >= 1)
+                            {
+                                timeDifferenceString = $"{(int)timeDifference.TotalMinutes}分前";
+                            }
+                            else
+                            {
+                                timeDifferenceString = "たった今";
+                            }
+                        }
+                        <h5 class="card-title"><a asp-action="Details" asp-route-id="@a.PostId">@((a.Title.Length > 17) ? a.Title.Substring(0, 17) + "..." : a.Title)</a></h5>
+                        <p class="card-text"><a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName">@(a.UserAccount.NickName ?? a.UserAccount.UserName)</a>・@timeDifferenceString</p>
+                        <p class="card-text">@Html.DisplayFor(modelItem => a.Prefecture)</p>
+                        <p class="card-text">@a.Place</p>
+                        <p class="card-text">@TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")</p>
+                        <p class="card-text">@a.Reward　円</p>
+                        <pre style="white-space: pre-wrap;" class="card-text">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre>
+                        <p class="card-text">@Html.DisplayFor(modelItem => a.Genre)</p>
+                        <p><a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId">出席確認</a></p>
+                        @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
+                        {
+                            <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
+                        }
 
+                        <button class="subscription-button" data-post-id="@a.PostId">いいね</button>
+                        <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
 
-        </section>
-    }
+                        @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
+                        {
+                            var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
+                            var adoptionExists = adoptions.ContainsKey(a.PostId) && adoptions[a.PostId];
+
+                            <p>
+                                <a asp-action="Subscriber" asp-route-id="@a.PostId">応募者一覧</a>
+                                @if (a.State == State.Recruiting)
+                                {
+                                    <span> | </span>
+                                    <a asp-action="Edit" asp-route-id="@a.PostId">Edit</a>
+                                }
+                                @if (!adoptionExists && a.State == State.Recruiting)
+                                {
+                                    <span> | </span>
+                                    <a asp-action="Delete" asp-route-id="@a.PostId">削除</a>
+                                }
+                            </p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
 </div>
+
 @{
     var errorMessage = ViewData["ErrorMessage"] as string;
 }
@@ -106,15 +114,17 @@
     </div>
 }
 
+
 @section Scripts {
     <script>
         $(function () {
             // Check localStorage for the showAdopted state
             var showAdopted = localStorage.getItem('showAdopted') === 'true';
-
+            
             // Set the initial state of the checkbox
             $('#showAdoptedToggle').prop('checked', showAdopted);
 
+            
             $('#showAdoptedToggle').change(function () {
                 showAdopted = $(this).is(':checked');
 
@@ -123,6 +133,7 @@
 
                 window.location.href = '/Posts/MySubscribedPosts?showAdopted=' + showAdopted;
             });
+            
 
             // Initialize button colors based on whether the user has liked each post
             $('.subscription-button').each(function () {

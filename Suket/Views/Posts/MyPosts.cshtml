@@ -1,5 +1,8 @@
 ﻿@using Microsoft.AspNetCore.Identity;
-@model IEnumerable<Suket.Models.Post>
+@using X.PagedList;
+@using X.PagedList.Mvc.Core;
+@using X.PagedList.Mvc.Bootstrap4.Core;
+@model IPagedList<Suket.Models.Post>
 @inject UserManager<UserAccount> userManager;
 @inject SignInManager<UserAccount> signInManager;
 
@@ -56,7 +59,7 @@
             <p>@Html.DisplayFor(modelItem => a.Genre)</p>
             <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
 
-            <button class="subscription-button" data-post-id="@a.PostId">いいね</button>
+            <!--<button class="subscription-button" data-post-id="@a.PostId">いいね</button>
             <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
 
             @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
@@ -64,20 +67,20 @@
                 var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
                 var adoptionExists = adoptions.ContainsKey(a.PostId) && adoptions[a.PostId];
 
-                <p>
-                    <a asp-action="Subscriber" asp-route-id="@a.PostId">応募者一覧</a>
+                    <p>
+                        <a asp-action="Subscriber" asp-route-id="@a.PostId">応募者一覧</a>
                     @if (a.State == State.Recruiting)
                     {
-                        <span> | </span>
-                        <a asp-action="Edit" asp-route-id="@a.PostId">Edit</a>
+                                <span> | </span>
+                                <a asp-action="Edit" asp-route-id="@a.PostId">Edit</a>
                     }
                     @if (!adoptionExists && a.State == State.Recruiting)
                     {
-                        <span> | </span>
-                        <a asp-action="Delete" asp-route-id="@a.PostId">削除</a>
+                                <span> | </span>
+                                <a asp-action="Delete" asp-route-id="@a.PostId">削除</a>
                     }
-                </p>
-            }
+                    </p>
+            }-->
 
 
         </section>
@@ -93,6 +96,10 @@
         @errorMessage
     </div>
 }
+
+<div style="text-align:center; margin-top:20px">
+    @Html.PagedListPager(Model, page => Url.Action("MyPosts", new { page }), Bootstrap4PagedListRenderOptions.ClassicPlusFirstAndLast)
+</div>
 
 @section Scripts {
     <script>
