@@ -97,9 +97,24 @@
     </div>
 }
 
-<div style="text-align:center; margin-top:20px">
-    @Html.PagedListPager(Model, page => Url.Action("MyPosts", new { page }), Bootstrap4PagedListRenderOptions.ClassicPlusFirstAndLast)
+<div style="text-align:center; margin-top:20px;">
+    @if (ViewData["TotalCount"] != null && ViewData["TotalPages"] != null && ViewData["CurrentPage"] != null)
+    {
+        if ((int)ViewData["TotalCount"] != 0)
+        {
+            <text> @ViewData["TotalCount"] 件/@ViewData["TotalPages"] ページ中/@ViewData["CurrentPage"] ページ目</text>
+            <div style="text-align:center;">
+                @Html.PagedListPager(Model, page => Url.Action("MyPosts", new { page }), Bootstrap4PagedListRenderOptions.ClassicPlusFirstAndLast)
+            </div>
+        }
+        else
+        {
+            <text>該当する投稿はありません。</text>
+        }
+        
+    }
 </div>
+
 
 @section Scripts {
     <script>

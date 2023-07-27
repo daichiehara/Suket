@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Suket.Models
 {
@@ -13,9 +14,10 @@ namespace Suket.Models
         [Range(1, 5)]
         public int MannerLevel { get; set; }
 
-        [Required]
+
         [Display(Name = "スキルレベル")]
         [Range(1, 5)]
+        //[Remote(action: "VerifySkillLevelRequirement", controller: "Reviews", AdditionalFields = nameof(ReviewerId) + "," + nameof(PostId) + "," + nameof(SkillLevel))]
         public int? SkillLevel { get; set; }
 
         [Required]

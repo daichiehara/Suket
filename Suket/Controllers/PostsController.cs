@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json.Linq;
 using Stripe;
 using Suket.Data;
 using Suket.Models;
@@ -38,37 +39,55 @@ namespace Suket.Controllers
 
         // GET: Posts
         [HttpGet]
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 9, Genre? genre = null, Prefecture? prefecture = null, string? searchString = null)
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 3, Genre? genre = null, Prefecture? prefecture = null, string? searchString = null, DateTimeOffset? fromDateTime = null, bool sortByDateTime = false)
         {
-            var model = await GetPosts(page, pageSize, genre, prefecture, searchString);
+            var model = await GetPosts(page, pageSize, genre, prefecture, searchString, fromDateTime, sortByDateTime);
             return View(model);
         }
 
-        private async Task<PostIndexViewModel> GetPosts(int page, int pageSize, Genre? genre, Prefecture? prefecture, string? searchString = null)
+        private async Task<PostIndexViewModel> GetPosts(int page, int pageSize, Genre? genre, Prefecture? prefecture, string? searchString = null, DateTimeOffset? fromDateTime = null, bool sortByDateTime = false)
         {
             var currentUser = await _userManager.GetUserAsync(User);
 
             var postsQuery = _context.Post
                 .Include(p => p.UserAccount)
                 .Include(p => p.Subscriptions)
-                .Where(p => p.State != State.End);
+                .Where(p => p.State != State.End)
+                .OrderBy(p => p.Created);
 
             // Filter posts by genre
             if (genre != null)
             {
-                postsQuery = postsQuery.Where(p => p.Genre == genre);
+                postsQuery = postsQuery.Where(p => p.Genre == genre)
+                                       .OrderBy(p => p.Created);
             }
 
             // Filter posts by prefecture
             if (prefecture != null)
             {
-                postsQuery = postsQuery.Where(p => p.Prefecture == prefecture);
+                postsQuery = postsQuery.Where(p => p.Prefecture == prefecture)
+                                       .OrderBy(p => p.Created);
             }
 
             // Full text search by searchString
             if (!string.IsNullOrEmpty(searchString))
             {
-                postsQuery = postsQuery.Where(p => p.Title.Contains(searchString) || p.Message.Contains(searchString));
+                postsQuery = postsQuery.Where(p => p.Title.Contains(searchString) || p.Message.Contains(searchString))
+                                       .OrderBy(p => p.Created);
+            }
+
+            if (fromDateTime != null)
+            {
+                // Convert to UTC before filtering
+                var utcFromDateTime = fromDateTime.Value.ToUniversalTime();
+                postsQuery = postsQuery.Where(p => p.Time >= utcFromDateTime)
+                                       .OrderBy(p => p.Time);
+            }
+
+            if (sortByDateTime)
+            {
+                // Order the posts by post.Time in ascending order (earliest to latest)
+                postsQuery = postsQuery.OrderBy(p => p.Time);
             }
 
             // ここで、ページングを適用します
@@ -111,10 +130,16 @@ namespace Suket.Controllers
             // Save searchString in ViewData
             ViewData["CurrentSearch"] = searchString;
 
+            // In GetPosts method
+            ViewData["FromDateTime"] = fromDateTime?.ToString("yyyy/MM/dd HH:mm");
+            // Save the sortByDateTime value in ViewData to keep track of checkbox state
+            ViewData["SortByDateTime"] = sortByDateTime;
+
             // Pass like counts and adoption user Ids to the view via ViewData
             ViewData["SubscriptionCounts"] = subscriptionCounts;
             ViewData["UserSubscriptionPosts"] = userSubscriptionPosts;
             ViewData["UserAdoptionPosts"] = userAdoptionPosts;
+            ViewData["TotalPosts"] = totalPosts;
 
             //return posts;
             return new PostIndexViewModel
@@ -238,6 +263,7 @@ namespace Suket.Controllers
             {
                 post.Time = post.Time.ToUniversalTime();
                 post.Created = DateTime.UtcNow;
+                
 
                 Random r1 = new Random();
                 post.Certification = r1.Next(1000, 9999);
@@ -293,8 +319,22 @@ namespace Suket.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("PostId,Title,PeopleCount,Prefecture,Place,Time,Item,Reward,Message,Created,Genre,State,UserAccountId")] Post post)
         {
+            /*
+            if (post.State == State.End)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+            */
             //データベースから元のエンティティを取得します
             var originalPost = await _context.Post.AsNoTracking().FirstOrDefaultAsync(m => m.PostId == id);
+
+            // Rewardが減らされていないことを確認
+            if (originalPost.Reward > post.Reward)
+            {
+                ModelState.AddModelError("Reward", "報酬は増やすことはできますが、減らすことはできません。");
+                return View(post);
+            }
+
             //元のエンティティのUserAccountIdを新しいエンティティのUserAccountIdに設定します。
             post.UserAccountId = originalPost.UserAccountId;
 
@@ -302,12 +342,7 @@ namespace Suket.Controllers
             {
                 return NotFound();
             }
-            /*
-            if (post.State == State.End)
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            */
+
             if (ModelState.IsValid)
             {
                 try
@@ -328,6 +363,7 @@ namespace Suket.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
+
             if (!ModelState.IsValid)
             {
                 // Validation failed, print the errors
@@ -346,6 +382,7 @@ namespace Suket.Controllers
                 // Return to the view with the model containing errors
                 return View(post);
             }
+
             ViewData["UserAccountId"] = new SelectList(_context.Users, "Id", "Id", post.UserAccountId);
 
             return View(post);
@@ -616,7 +653,17 @@ namespace Suket.Controllers
 
             // Using ToPagedList extension method from X.PagedList.Mvc.Core
             int pageNumber = (page ?? 1);
-            var onePageOfPosts = myPosts.ToPagedList(pageNumber, 15); // 15 posts per page
+            int pageSize = 15;
+            var onePageOfPosts = myPosts.ToPagedList(pageNumber, pageSize);
+
+            // Calculate the total count of posts and total page count
+            var totalCount = myPosts.Count();
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            // Pass the total count and total pages to the view
+            ViewData["TotalCount"] = totalCount;
+            ViewData["TotalPages"] = totalPages;
+            ViewData["CurrentPage"] = pageNumber;
 
             return View(onePageOfPosts);
         }

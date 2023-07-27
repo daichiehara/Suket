@@ -34,7 +34,7 @@
         @foreach (var a in Model)
         {
             <div class="col-md-4">
-                <div class="card">
+                <div class="card" style="margin-bottom:10px;">
                     @if (a.State == State.End)
                     {
                         <div class="end-banner">募集終了</div>
@@ -68,14 +68,28 @@
                         <p class="card-text">@a.Reward　円</p>
                         <pre style="white-space: pre-wrap;" class="card-text">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre>
                         <p class="card-text">@Html.DisplayFor(modelItem => a.Genre)</p>
-                        <p><a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId">出席確認</a></p>
+
                         @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
                         {
                             <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
                         }
-
-                        <button class="subscription-button" data-post-id="@a.PostId">いいね</button>
-                        <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
+                        
+                        @{
+                            var userAdoptionPosts = ViewData["UserAdoptionPosts"] as Dictionary<int, bool>;
+                        }
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <button class="subscription-button" data-post-id="@a.PostId">いいね</button>
+                                <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
+                            </div>
+                            @if (userAdoptionPosts != null && userAdoptionPosts.ContainsKey(a.PostId))
+                            {
+                                <div style="margin-left: auto;">
+                                    <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId" class="btn btn-success">出席確認</a>
+                                </div>
+                            }
+                        </div>
 
                         @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
                         {

@@ -196,7 +196,7 @@ namespace Suket.Controllers
                             .Include(p => p.Reviews)
                             .Include(p => p.Adoptions)
                             .ThenInclude(a => a.UserAccount)
-                            .Where(p => p.Time < utcTime && !p.Reviews.Any())  // now -> utcTime
+                            .Where(p => p.Time < utcTime && p.Adoptions.Any(a => !p.Reviews.Any(r => r.ReviewedId == a.UserAccountId)))  // now -> utcTime
                             .ToList();
 
 
@@ -209,12 +209,18 @@ namespace Suket.Controllers
                 {
                     foreach (var adoption in post.Adoptions)
                     {
-                        reviewablePostsList.Add(new ReviewablePostsViewModel { Post = post, UserToReview = adoption.UserAccount });
+                        if (!post.Reviews.Any(r => r.ReviewedId == adoption.UserAccountId))
+                        {
+                            reviewablePostsList.Add(new ReviewablePostsViewModel { Post = post, UserToReview = adoption.UserAccount });
+                        }
                     }
                 }
                 else if (post.Adoptions.Any(a => a.UserAccountId == currentUserId))
                 {
-                    reviewablePostsList.Add(new ReviewablePostsViewModel { Post = post, UserToReview = post.UserAccount });
+                    if (!post.Reviews.Any(r => r.ReviewedId == post.UserAccountId))
+                    {
+                        reviewablePostsList.Add(new ReviewablePostsViewModel { Post = post, UserToReview = post.UserAccount });
+                    }
                 }
             }
 
@@ -232,6 +238,11 @@ namespace Suket.Controllers
 
             string displayName = user.NickName ?? user.UserName;
             ViewData["ReviewedUserName"] = displayName;
+
+            // Is the review being written by the post's author?
+            bool isReviewByAuthor = post.UserAccountId == userId;
+            ViewData["IsReviewByAuthor"] = isReviewByAuthor;
+
 
             if (post == null || user == null)
             {
@@ -252,6 +263,25 @@ namespace Suket.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateReview(Review review)
         {
+            var post = _context.Post.FirstOrDefault(p => p.PostId == review.PostId);
+
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            // Is the review being written by the post's author?
+            bool isReviewByAuthor = post.UserAccountId == review.ReviewerId;
+
+            /*
+            if (isReviewByAuthor)
+            {
+                // If the review is being written by the post's author, set SkillLevel to null and remove it from model state
+                review.SkillLevel = null;
+                ModelState.Remove("SkillLevel");
+            }
+            */
+
             if (ModelState.IsValid)
             {
                 _context.Add(review);
@@ -284,6 +314,37 @@ namespace Suket.Controllers
             return View(review);
         }
 
+        /*
+        [AcceptVerbs("GET", "POST")]
+        public IActionResult VerifySkillLevelRequirement(string reviewerId, int postId, int? skillLevel)
+        {
+            var reviewer = _context.Users.FirstOrDefault(u => u.Id == reviewerId);
+            var post = _context.Post.FirstOrDefault(p => p.PostId == postId);
 
+            if (reviewer == null || post == null)
+            {
+                return Json(false);
+            }
+
+            // Check if the review is being written by the post's author
+            var isReviewByAuthor = reviewerId == post.UserAccountId;
+
+            // If the review is being written by the post's author, SkillLevel is not required.
+            if (isReviewByAuthor)
+            {
+                return Json(true);
+            }
+
+            
+            if (!isReviewByAuthor && (skillLevel == null))
+            {
+                return Json($"スキルレベルの入力は必須です。");
+            }
+            
+
+            // Otherwise, SkillLevel is required.
+            return Json(false);
+        }
+        */
     }
 }
