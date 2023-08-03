@@ -38,6 +38,10 @@ namespace Suket.Models
         [Display(Name = "StripeId")]
         public string? StripeAccountId { get; set; }
 
+        public bool DetailsSubmitted { get; set; }
+
+        public bool ChargesEnabled { get; set; }
+
         public virtual ICollection<Post> Posts { get; set; }
         public virtual ICollection<Subscription> Subscriptions { get; set; }
         public virtual ICollection<Adoption> Adoptions { get; set; }

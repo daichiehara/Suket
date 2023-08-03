@@ -20,6 +20,7 @@
 
 <head>
     <link rel="stylesheet" href="/css/PostIndex.css" />
+    <link rel="stylesheet" href="/css/Pagination.css" />
 </head>
 
 <style>
@@ -142,7 +143,7 @@
             {
                 <text>「@currentSearch」</text>
             }
-            の検索結果（@hitCount 件）
+            の検索結果（@ViewData["TotalPosts"] 件）
         </h4>
     </div>
 }
@@ -237,33 +238,71 @@
     </div>
 }
 
-<!-- Add this part -->
+
+
+<!-- Replace the previous pagination section with this Bootstrap-enhanced pagination -->
+@{
+    // Extract the current query parameters from the Request URL
+    var queryString = ViewContext.HttpContext.Request.QueryString.Value;
+    if (!string.IsNullOrEmpty(queryString))
+    {
+        queryString = queryString.Substring(1); // Remove the leading '?'
+    }
+}
 <div style="text-align:center; margin-top:20px;">
     @if (Model.Posts.Any())
     {
         <text>@ViewData["TotalPosts"]件/@Model.TotalPages ページ中/@Model.CurrentPage ページ目</text>
-        <nav aria-label="Page navigation example">
-            <ul class="pagination justify-content-center">
-                <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
-                    <a class="page-link" href="@Url.Action("Index", new { page = Model.CurrentPage - 1 })">Previous</a>
-                </li>
-                @for (var i = 1; i <= Model.TotalPages; i++)
-                {
-                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
-                        <a class="page-link" href="@Url.Action("Index", new { page = i })">@i</a>
-                    </li>
-                }
-                <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
-                    <a class="page-link" href="@Url.Action("Index", new { page = Model.CurrentPage + 1 })">Next</a>
-                </li>
-            </ul>
-        </nav>
     }
     else
     {
         <text>該当する投稿はありません。</text>
     }
 </div>
+<div class="pagination">
+    <!-- Previous page link -->
+    @if (Model.CurrentPage > 1)
+    {
+        <a class="pagination-link" asp-action="Index" asp-route-page="@(Model.CurrentPage - 1)" asp-route-searchString="@ViewData["CurrentSearch"]"
+       asp-route-genre="@((Genre?)ViewData["SelectedGenre"])" asp-route-prefecture="@((Prefecture?)ViewData["CurrentPrefecture"])"
+       asp-route-fromDateTime="@((string)ViewData["FromDateTime"])" asp-route-sortByDateTime="@((bool)ViewData["SortByDateTime"])">Previous</a>
+    }
+    else
+    {
+        <span class="disabled">Previous</span>
+    }
+
+    <!-- Page links -->
+    @for (int i = 1; i <= Model.TotalPages; i++)
+    {
+        if (Model.CurrentPage == i)
+        {
+            <span class="current-page">@i</span>
+        }
+        else
+        {
+            <a class="pagination-link" asp-action="Index" asp-route-page="@i" asp-route-searchString="@ViewData["CurrentSearch"]"
+       asp-route-genre="@((Genre?)ViewData["SelectedGenre"])" asp-route-prefecture="@((Prefecture?)ViewData["CurrentPrefecture"])"
+       asp-route-fromDateTime="@((string)ViewData["FromDateTime"])" asp-route-sortByDateTime="@((bool)ViewData["SortByDateTime"])">@i</a>
+        }
+    }
+
+    <!-- Next page link -->
+    @if (Model.CurrentPage < Model.TotalPages)
+    {
+        <a class="pagination-link" asp-action="Index" asp-route-page="@(Model.CurrentPage + 1)" asp-route-searchString="@ViewData["CurrentSearch"]"
+       asp-route-genre="@((Genre?)ViewData["SelectedGenre"])" asp-route-prefecture="@((Prefecture?)ViewData["CurrentPrefecture"])"
+       asp-route-fromDateTime="@((string)ViewData["FromDateTime"])" asp-route-sortByDateTime="@((bool)ViewData["SortByDateTime"])">Next</a>
+    }
+    else
+    {
+        <span class="disabled">Next</span>
+    }
+</div>
+
+
+
+
 
 
 @section Scripts {

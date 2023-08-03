@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Drawing.Printing;
 using System.Linq;
 using System.Resources;
+using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.AspNetCore.Identity;
@@ -42,6 +44,36 @@ namespace Suket.Controllers
         public async Task<IActionResult> Index(int page = 1, int pageSize = 3, Genre? genre = null, Prefecture? prefecture = null, string? searchString = null, DateTimeOffset? fromDateTime = null, bool sortByDateTime = false)
         {
             var model = await GetPosts(page, pageSize, genre, prefecture, searchString, fromDateTime, sortByDateTime);
+
+            // Build the query string for the pagination links
+            var queryString = new StringBuilder();
+            if (genre != null)
+            {
+                queryString.Append($"genre={genre}&");
+            }
+            if (prefecture != null)
+            {
+                queryString.Append($"prefecture={prefecture}&");
+            }
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                queryString.Append($"searchString={HttpUtility.UrlEncode(searchString)}&");
+            }
+            if (fromDateTime != null)
+            {
+                queryString.Append($"fromDateTime={HttpUtility.UrlEncode(fromDateTime.Value.ToString("yyyy-MM-ddTHH:mm"))}&");
+            }
+            if (sortByDateTime)
+            {
+                queryString.Append("sortByDateTime=true&");
+            }
+
+            // Save the query string in ViewData to pass it to the view
+            ViewData["QueryString"] = queryString.ToString().TrimEnd('&');
+
+            // Save fromDateTime in ViewData
+            ViewData["FromDateTime"] = fromDateTime?.ToString("yyyy-MM-ddTHH:mm");
+
             return View(model);
         }
 
@@ -131,7 +163,8 @@ namespace Suket.Controllers
             ViewData["CurrentSearch"] = searchString;
 
             // In GetPosts method
-            ViewData["FromDateTime"] = fromDateTime?.ToString("yyyy/MM/dd HH:mm");
+            ViewData["FromDateTime"] = fromDateTime?.ToString("yyyy/MM/ddTHH:mm");
+            //ViewData["FromDateTime"] = fromDateTime;
             // Save the sortByDateTime value in ViewData to keep track of checkbox state
             ViewData["SortByDateTime"] = sortByDateTime;
 

@@ -56,6 +56,16 @@ namespace Suket.Controllers
                 return NotFound();
             }
 
+            string ProfileUrl = "";
+            if (user.NickName != null)
+            {
+                ProfileUrl = $"https://localhost:7144/Users/{user.NickName}";
+            }
+            else
+            {
+                ProfileUrl = $"https://localhost:7144/Users/{user.UserName}";
+            }
+
             var options = new AccountCreateOptions
             {
                 Type = "express",
@@ -73,13 +83,15 @@ namespace Suket.Controllers
                     },
                 },
                 BusinessType = "individual",
-                BusinessProfile = new AccountBusinessProfileOptions { Url = "https://example.com" },
+                //BusinessProfile = new AccountBusinessProfileOptions { Url = ProfileUrl },
             };
             var service = new AccountService();
             var account = service.Create(options);
 
             // Save the Stripe account ID to the user
             user.StripeAccountId = account.Id;
+            //user.DetailsSubmitted = account.DetailsSubmitted;
+            //user.ChargesEnabled= account.ChargesEnabled;
             await _userManager.UpdateAsync(user);
 
             // Create an account link
@@ -100,7 +112,7 @@ namespace Suket.Controllers
             {
                 Account = user.StripeAccountId,
                 RefreshUrl = "https://localhost:7144/Stripe/CreateAccountLink",
-                ReturnUrl = "https://localhost:7144/Posts",
+                ReturnUrl = "https://localhost:7144/Stripe/UpdateAccountDetails",
                 Type = "account_onboarding",
             };
             var service = new AccountLinkService();
@@ -108,6 +120,27 @@ namespace Suket.Controllers
 
             // Redirect the user to the account link URL
             return Redirect(accountLink.Url);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> UpdateAccountDetails()
+        {
+            StripeConfiguration.ApiKey = GetStripeAPIKeyFromAzureKeyVault();
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var service = new AccountService();
+            var account = service.Get(user.StripeAccountId);
+
+            // Update the user's account details
+            user.DetailsSubmitted = account.DetailsSubmitted;
+            user.ChargesEnabled = account.ChargesEnabled;
+            await _userManager.UpdateAsync(user);
+
+            return RedirectToAction("Index", "Posts");
         }
 
         [HttpPost]
@@ -133,6 +166,8 @@ namespace Suket.Controllers
 
                 // Clear StripeAccountId for the user in your database
                 user.StripeAccountId = null;
+                user.DetailsSubmitted = false;
+                user.ChargesEnabled = false;
                 await _userManager.UpdateAsync(user);
 
                 return Ok();
