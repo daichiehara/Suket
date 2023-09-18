@@ -7,7 +7,7 @@
 @inject SignInManager<UserAccount> signInManager;
 
 @{
-
+    ViewData["Title"] = "My応募";
     var currentUser = await userManager.GetUserAsync(User);
     bool isLoggedIn = signInManager.IsSignedIn(User) && currentUser != null;
 }
@@ -16,7 +16,7 @@
 </head>
 
 
-<h1>いいねした投稿</h1>
+<h1>応募した投稿</h1>
 
 
 <div>
@@ -66,7 +66,7 @@
                         <p class="card-text">@a.Place</p>
                         <p class="card-text">@TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")</p>
                         <p class="card-text">@a.Reward　円</p>
-                        <pre style="white-space: pre-wrap;" class="card-text">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre>
+                        <pre style="white-space: pre-wrap;" class="card-text">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre> 
                         <p class="card-text">@Html.DisplayFor(modelItem => a.Genre)</p>
 
                         @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
@@ -80,7 +80,7 @@
                         
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <button class="subscription-button" data-post-id="@a.PostId">いいね</button>
+                                <button class="subscription-button" data-post-id="@a.PostId">応募</button>
                                 <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
                             </div>
                             @if (userAdoptionPosts != null && userAdoptionPosts.ContainsKey(a.PostId))
@@ -116,6 +116,7 @@
         }
     </div>
 </div>
+
 
 @{
     var errorMessage = ViewData["ErrorMessage"] as string;

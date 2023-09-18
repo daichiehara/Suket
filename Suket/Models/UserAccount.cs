@@ -50,5 +50,6 @@ namespace Suket.Models
         public virtual ICollection<RollCall> RollCalls { get; set; }
         public ICollection<Review> ReviewsWritten { get; set; }
         public ICollection<Review> ReviewsReceived { get; set; }
+        public virtual ICollection<PaymentRecord> PaymentRecords { get; set; }
     }
 }

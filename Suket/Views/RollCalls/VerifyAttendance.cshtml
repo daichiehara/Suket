@@ -2,14 +2,17 @@
 @model VerifyAttendanceViewModel;
 @inject UserManager<UserAccount> userManager;
 @{
+    ViewData["Title"] = "Verify";
     var currentUser = await userManager.GetUserAsync(User);
 }
 
 <h2>認証</h2>
+<p>投稿者から認証コードを聞いて入力しよう！</p>
 <p>当日参加したことを確認するための認証です。認証されないと報酬は受け取れません。</p>
 <br />
 <p>タイトル： @ViewData["PostTitle"]</p>
 <p>開催場所：@ViewData["PostPlace"]</p>
+<p>投稿者：<a asp-controller="Users" asp-action="Profile" asp-route-UserName=@ViewData["PostUserName"]>@ViewData["PostDisplayName"]</a></p>
 
 <form asp-action="VerifyAttendance" asp-controller="RollCalls" method="post">
     <input type="hidden" asp-for="@Model.PostId" value="@ViewData["PostId"]" />

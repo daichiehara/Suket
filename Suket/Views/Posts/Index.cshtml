@@ -8,6 +8,12 @@
 
     var currentUser = await userManager.GetUserAsync(User);
     bool isLoggedIn = signInManager.IsSignedIn(User) && currentUser != null;
+    var isAdmin = false;
+    if (isLoggedIn)
+    {
+        var user = await userManager.GetUserAsync(User);
+        isAdmin = await userManager.IsInRoleAsync(user, "Admin");
+    }
 }
 
 @{
@@ -21,6 +27,7 @@
 <head>
     <link rel="stylesheet" href="/css/PostIndex.css" />
     <link rel="stylesheet" href="/css/Pagination.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
 </head>
 
 <style>
@@ -30,11 +37,47 @@
         border-radius: 4px;
         appearance: menulist-button; /* これで少しプルダウンらしさを出すことが可能です */
     }
+
+    #closeButton {
+        background-color: transparent;
+        border: none;
+        font-size: 2rem; /* フォントサイズを大きくする */
+        outline: none; /* ボタンクリック時のアウトラインを除去 */
+        cursor: pointer;
+    }
+
+    #closeButton:hover {
+        color: #999; /* ホバー時の色を変更 */
+    }
+
+
 </style>
+
+<div id="loadingOverlay" class="d-none" style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+">
+</div>
+<div id="loadingSpinner" class="d-none" style="
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    text-align: center;
+">
+    <div class="spinner-border text-primary" role="status"></div>
+    <div style="color: blue; font-weight: bold;">Loading...</div>
+</div>
 
 
 <div class="d-flex justify-content-between align-items-center">
-    <h3 class="mr-3">募集一覧</h3>
+    <h3 class="mr-3" style="font-weight:bold">Post</h3>
     <button id="filterButton" class="ml-auto d-flex align-items-center">
         <svg style="margin-right:5px;" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="humbleicons hi-adjustments ml-2">
             <path xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 6v-.5M17.5 4v5m0 11v-5.56M6.5 4v2m0 14v-8.44M6.5 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm5.5 8a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm5.5-5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
@@ -114,13 +157,16 @@
 </div>
 
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
+<div class="fixed-button-container">
+    <a asp-action="Create" class="fixed-button btn btn-primary">
+        <i class="fas fa-plus"></i>
+    </a>
+</div>
 
+<!--
 <button id="sendGreetingButton" class="btn btn-primary">挨拶を送る</button>
 <button id="delete-stripe-account">Delete Stripe Account</button>
-
+-->
 
 
 @if (!string.IsNullOrWhiteSpace(currentSearch) || selectedGenre.HasValue || selectedPrefecture.HasValue || fromDateTime != null)
@@ -179,22 +225,23 @@
                     <p class="card-text">@Html.DisplayFor(modelItem => a.Prefecture)</p>
                     <p class="card-text">@a.Place</p>
                     <p class="card-text">@TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")</p>
-                    <p class="card-text">@a.Reward　円</p>
-                    <p class="card-text">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</p>
+                    <p class="card-text">報酬：@a.Reward　円</p>
+                    <pre class="card-text">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre>
                     <p class="card-text">@Html.DisplayFor(modelItem => a.Genre)</p>
                     @{
                         var userAdoptionPosts = ViewData["UserAdoptionPosts"] as Dictionary<int, bool>;
-                        var isAdopted = userAdoptionPosts?[a.PostId] ?? false;
+                        //var isAdopted = userAdoptionPosts?[a.PostId] ?? false;
+                        var isAdopted = userAdoptionPosts?.ContainsKey(a.PostId) == true ? userAdoptionPosts[a.PostId] : false;
                     }
 
-                    @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
+                    @if ((isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id)) || isAdmin)
                     {
                         <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
                     }
 
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <button class="subscription-button" data-post-id="@a.PostId">いいね</button>
+                            <button class="subscription-button" data-post-id="@a.PostId" data-reward="@a.Reward">応募</button>
                             <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
                         </div>
                         @if (isAdopted)
@@ -207,7 +254,7 @@
 
 
 
-                    @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
+                    @if ((isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id)) || isAdmin)
                     {
                         var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
                         var adoptionExists = adoptions.ContainsKey(a.PostId) && adoptions[a.PostId];
@@ -215,7 +262,7 @@
                         <p>
                             <a asp-action="Subscriber" asp-route-id="@a.PostId">応募者一覧</a>
                             <a asp-action="Edit" asp-route-id="@a.PostId">Edit</a>
-                            @if (!adoptionExists)
+                            @if (!adoptionExists && isAdmin)
                             {
                                 <span> | </span>
                                 <a asp-action="Delete" asp-route-id="@a.PostId">削除</a>
@@ -307,6 +354,18 @@
 
 @section Scripts {
     <script>
+        $(document).ready(function () {
+            $("#viewTransactionHistory").click(function () {
+                $(this).hide();
+                $("#loadingSpinner, #loadingOverlay").removeClass("d-none");
+            });
+
+            $("button[onclick^='location.href']").click(function () {
+                $(this).hide();
+                $("#loadingSpinner, #loadingOverlay").removeClass("d-none");
+            });
+        });
+        
         async function checkUserHasStripeAccount() {
             var result = false;
             // Make Ajax request to your server-side endpoint to check if the user has a Stripe account
@@ -349,16 +408,23 @@
                 var button = $(this);
                 var countSpan = button.next('.subscription-count');
                 var postId = button.data('post-id');
+                var postReward = parseFloat(button.data('reward')); // Get the reward from the button's data attribute
 
-                const hasStripeAccount = await checkUserHasStripeAccount();
+                if (postReward !== 0){
 
-                if (!hasStripeAccount) {
-                    // If the user does not have a Stripe account, request to create one
-                    var confirmResult = confirm("報酬を受け取るには銀行口座の登録が必要です。作成しますか？（口座を登録しないと応募はできません。）");
-                    if (confirmResult) {
-                        window.location.href = '/Stripe/CreateAccount';
+                    const hasStripeAccount = await checkUserHasStripeAccount();
+
+                    if (!hasStripeAccount) {
+                        // If the user does not have a Stripe account, request to create one
+                        var confirmResult = confirm("報酬を受け取るには銀行口座の登録が必要です。作成しますか？（口座を登録しないと応募はできません。）");
+                        if (confirmResult) {
+                            $('#loadingSpinner, #loadingOverlay').removeClass('d-none'); // ローディングスピナーとオーバーレイを表示
+                            setTimeout(() => {
+                                window.location.href = '/Stripe/CreateAccount';
+                            }, 500); // 500ミリ秒のディレイを追加
+                        }
+                        return;
                     }
-                    return;
                 }
                 // Get the current like count
                 var count = parseInt(countSpan.text());
@@ -383,8 +449,13 @@
                     }
                 });
             });
+
         });
-        
+
+        $(window).on('load', function() {
+            $('#loader').hide();
+        });
+
         document.getElementById('filterButton').addEventListener('click', function() {
         const filterForm = document.getElementById('filterForm');
         filterForm.classList.toggle('d-none');
@@ -418,8 +489,8 @@
             });
         });
 
-
-
+        
+        
     </script>
         
 }

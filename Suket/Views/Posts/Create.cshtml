@@ -32,15 +32,17 @@
                 </select>
                 <span asp-validation-for="PeopleCount" class="text-danger"></span>
             </div>
+            <br />
             <div class="form-group">
                 開催地：
                 <label asp-for="Prefecture" class="control-label"></label>
                 <select asp-for="Prefecture" asp-items="Html.GetEnumSelectList(typeof (Prefecture))"></select>
                 <span asp-validation-for="Prefecture" class="text-danger"></span>
             </div>
+            <br />
             <div class="form-group">
                 <label asp-for="Place" class="control-label"></label>
-                <input asp-for="Place" class="form-control" />
+                <input asp-for="Place" class="form-control" placeholder="例)Polanco総合運動場" />
                 <span asp-validation-for="Place" class="text-danger"></span>
             </div>
             <div class="form-group">
@@ -50,17 +52,17 @@
             </div>
             <div class="form-group">
                 <label asp-for="Item" class="control-label"></label>
-                <input asp-for="Item" class="form-control" />
+                <input asp-for="Item" class="form-control" placeholder="例)スパイク,ユニフォーム(なんでもよい),etc..." />
                 <span asp-validation-for="Item" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="Reward" class="control-label"></label>
+                <label asp-for="Reward" class="control-label"></label>（円）
                 <input asp-for="Reward" class="form-control" />
                 <span asp-validation-for="Reward" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="Message" class="control-label"></label>
-                <textarea asp-for="Message" class="form-control" rows="5"></textarea>
+                <textarea asp-for="Message" class="form-control" rows="5" placeholder="例)メンバーが9人で、交代も考えたいので1人募集します。現地集合現地解散でお願いします。開催時刻は9時なので8時30分頃集合でお願いします。当日は一緒に頑張りましょう！"></textarea>
                 <span asp-validation-for="Message" class="text-danger"></span>
             </div>
             <div class="form-group">
@@ -91,3 +93,8 @@
 <div>
     <a asp-action="Index">募集一覧へ</a>
 </div>
+
+@section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+
+}

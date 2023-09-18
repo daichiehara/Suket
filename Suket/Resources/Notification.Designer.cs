@@ -61,7 +61,7 @@ namespace Suket.Resources {
         }
         
         /// <summary>
-        ///   &quot;{0}さん!&lt;br&gt;&lt;br&gt;応募していた募集に掲載者がコメントをしました。&lt;br&gt;「{1}」&lt;br&gt;&lt;br&gt;詳細は下記URLからお確かめください。&lt;br&gt;https://&lt;br&gt;&lt;br&gt;このメールは返信不可です。&lt;br&gt;&lt;br&gt;引き続き本サービスをよろしくお願いいたします。&lt;br&gt;Suket開発チーム&quot; に類似しているローカライズされた文字列を検索します。
+        ///   {0}さん!&lt;br&gt;&lt;br&gt;{1}していた投稿に{2}がコメントをしました。&lt;br&gt;「{3}」&lt;br&gt;&lt;br&gt;詳細は下記URLからお確かめください。&lt;br&gt;https://localhost:7144/Posts/Details/{4}&lt;br&gt;&lt;br&gt;このメールは返信不可です。&lt;br&gt;&lt;br&gt;引き続き本サービスをよろしくお願いいたします。&lt;br&gt;Mint SPORTSサポートチーム に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string NewCommentNotificationBody {
             get {

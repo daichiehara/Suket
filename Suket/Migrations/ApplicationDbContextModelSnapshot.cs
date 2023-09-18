@@ -17,7 +17,7 @@ namespace Suket.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.5")
+                .HasAnnotation("ProductVersion", "7.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -204,6 +204,37 @@ namespace Suket.Migrations
                     b.HasIndex("UserAccountId");
 
                     b.ToTable("Confirm");
+                });
+
+            modelBuilder.Entity("Suket.Models.PaymentRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("PaymentIntentId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PostId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Refunded")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("UserAccountId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("UserAccountId");
+
+                    b.ToTable("PaymentRecord");
                 });
 
             modelBuilder.Entity("Suket.Models.Post", b =>
@@ -563,6 +594,25 @@ namespace Suket.Migrations
                     b.Navigation("UserAccount");
                 });
 
+            modelBuilder.Entity("Suket.Models.PaymentRecord", b =>
+                {
+                    b.HasOne("Suket.Models.Post", "Post")
+                        .WithMany("PaymentRecords")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Suket.Models.UserAccount", "UserAccount")
+                        .WithMany("PaymentRecords")
+                        .HasForeignKey("UserAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+
+                    b.Navigation("UserAccount");
+                });
+
             modelBuilder.Entity("Suket.Models.Post", b =>
                 {
                     b.HasOne("Suket.Models.UserAccount", "UserAccount")
@@ -664,6 +714,8 @@ namespace Suket.Migrations
 
                     b.Navigation("Confirms");
 
+                    b.Navigation("PaymentRecords");
+
                     b.Navigation("Replys");
 
                     b.Navigation("Reviews");
@@ -678,6 +730,8 @@ namespace Suket.Migrations
                     b.Navigation("Adoptions");
 
                     b.Navigation("Confirms");
+
+                    b.Navigation("PaymentRecords");
 
                     b.Navigation("Posts");
 

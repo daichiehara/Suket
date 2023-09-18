@@ -23,7 +23,7 @@ namespace Suket
             var client = new SendGridClient(_apiKey);
             var msg = new SendGridMessage()
             {
-                From = new EmailAddress("ehara@roadmint.co.jp", "Suketテストセンター"),
+                From = new EmailAddress("ehara@roadmint.co.jp", "Mint SPORTSサポートチーム"),
                 Subject = subject,
                 PlainTextContent = message,
                 HtmlContent = message.Replace(Environment.NewLine, "<br>") // HTML形式のメッセージには、改行を <br> に置き換える

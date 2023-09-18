@@ -2,10 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Stripe;
 using Suket.Data;
 using Suket.Models;
 
@@ -163,6 +167,7 @@ namespace Suket.Controllers
           return (_context.RollCall?.Any(e => e.RollCallId == id)).GetValueOrDefault();
         }
 
+        [Authorize]
         public async Task<IActionResult> VerifyAttendance(int id)
         {
             var post = _context.Post.FirstOrDefault(p => p.PostId == id);
@@ -178,7 +183,14 @@ namespace Suket.Controllers
                     }
                 }
 
+                // UserAccountを取得
+                var userAccount = await _context.Users.FindAsync(post.UserAccountId);
+
+                var displayName = userAccount.NickName ?? userAccount.UserName;
+
                 ViewData["PostId"] = id;
+                ViewData["PostUserName"] = post.UserAccount.UserName;
+                ViewData["PostDisplayName"] = displayName;
                 ViewData["PostTitle"] = post.Title;
                 ViewData["PostPlace"] = post.Place;
             }
@@ -188,6 +200,7 @@ namespace Suket.Controllers
 
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> VerifyAttendance(int postId, string userAccountId, int certificationCode)
         {
             try
@@ -237,6 +250,7 @@ namespace Suket.Controllers
             }
         }
 
+        [Authorize]
         public IActionResult AttendanceConfirmed()
         {
             return View();

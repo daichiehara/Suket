@@ -19,6 +19,7 @@ namespace Suket.Areas.Identity.Pages.Account
     {
         private readonly UserManager<UserAccount> _userManager;
 
+
         public ConfirmEmailModel(UserManager<UserAccount> userManager)
         {
             _userManager = userManager;

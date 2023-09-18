@@ -11,6 +11,7 @@ namespace Suket.Data
         {
         }
         //public DbSet<Suket.Models.User> User { get; set; }
+        //public DbSet<Suket.Models.UserAccount>? UserAccount { get; set; }
         public DbSet<Suket.Models.Post>? Post { get; set; }
         //public DbSet<Suket.Models.User> User { get; set; }
         public DbSet<Suket.Models.Subscription>? Subscription { get; set; }
@@ -54,6 +55,8 @@ namespace Suket.Data
         public DbSet<Suket.Models.RollCall>? RollCall { get; set; }
 
         public DbSet<Suket.Models.Review>? Review { get; set; }
+
+        public DbSet<Suket.Models.PaymentRecord>? PaymentRecord { get; set; }
 
     }
 }

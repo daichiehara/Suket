@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -181,6 +182,7 @@ namespace Suket.Controllers
           return (_context.Review?.Any(e => e.ReviewId == id)).GetValueOrDefault();
         }
 
+        [Authorize]
         public IActionResult ReviewablePosts()
         {
             var now = DateTimeOffset.Now;
@@ -196,26 +198,25 @@ namespace Suket.Controllers
                             .Include(p => p.Reviews)
                             .Include(p => p.Adoptions)
                             .ThenInclude(a => a.UserAccount)
-                            .Where(p => p.Time < utcTime && p.Adoptions.Any(a => !p.Reviews.Any(r => r.ReviewedId == a.UserAccountId)))  // now -> utcTime
+                            .Include(p => p.RollCalls)  // RollCall をロード
+                            .Where(p => p.Time < utcTime && p.RollCalls.Any(r => !p.Reviews.Any(rv => rv.ReviewedId == r.UserAccountId)))  // RollCall を基にレビューの条件を変更
                             .ToList();
 
-
-            // 現在のユーザーが募集者のPostと、採用者のPostを分けて管理
             var reviewablePostsList = new List<ReviewablePostsViewModel>();
 
             foreach (var post in reviewablePosts)
             {
                 if (post.UserAccountId == currentUserId)
                 {
-                    foreach (var adoption in post.Adoptions)
+                    foreach (var rollCall in post.RollCalls)
                     {
-                        if (!post.Reviews.Any(r => r.ReviewedId == adoption.UserAccountId))
+                        if (!post.Reviews.Any(r => r.ReviewedId == rollCall.UserAccountId))
                         {
-                            reviewablePostsList.Add(new ReviewablePostsViewModel { Post = post, UserToReview = adoption.UserAccount });
+                            reviewablePostsList.Add(new ReviewablePostsViewModel { Post = post, UserToReview = rollCall.UserAccount });
                         }
                     }
                 }
-                else if (post.Adoptions.Any(a => a.UserAccountId == currentUserId))
+                else if (post.RollCalls.Any(r => r.UserAccountId == currentUserId))
                 {
                     if (!post.Reviews.Any(r => r.ReviewedId == post.UserAccountId))
                     {
@@ -227,7 +228,9 @@ namespace Suket.Controllers
             return View(reviewablePostsList);
         }
 
+
         // GET: Reviews/CreateReview
+        [Authorize]
         public IActionResult CreateReview(int postId, string userId)
         {
             var post = _context.Post.FirstOrDefault(p => p.PostId == postId);
@@ -261,6 +264,7 @@ namespace Suket.Controllers
         // POST: Reviews/CreateReview
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize]
         public async Task<IActionResult> CreateReview(Review review)
         {
             var post = _context.Post.FirstOrDefault(p => p.PostId == review.PostId);

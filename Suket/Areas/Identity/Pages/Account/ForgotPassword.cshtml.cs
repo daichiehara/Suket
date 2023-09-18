@@ -13,15 +13,16 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using Suket.Models;
 
 namespace Suket.Areas.Identity.Pages.Account
 {
     public class ForgotPasswordModel : PageModel
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly IEmailSender _emailSender;
+        private readonly UserManager<UserAccount> _userManager;
+        private readonly ISuketEmailSender _emailSender;
 
-        public ForgotPasswordModel(UserManager<IdentityUser> userManager, IEmailSender emailSender)
+        public ForgotPasswordModel(UserManager<UserAccount> userManager, ISuketEmailSender emailSender)
         {
             _userManager = userManager;
             _emailSender = emailSender;
@@ -73,7 +74,8 @@ namespace Suket.Areas.Identity.Pages.Account
                 await _emailSender.SendEmailAsync(
                     Input.Email,
                     "Reset Password",
-                    $"Please reset your password by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    $"以下のボタンを押して、パスワードを変更してください。<br />" +
+                    $"<a href='{HtmlEncoder.Default.Encode(callbackUrl)}' style='display: inline-block; padding: 10px 20px; border-radius: 5px; background-color: #4CAF50; color: white; text-decoration: none;'>パスワードを変更する</a><br /><br />Mint SPORTSサポートチーム");
 
                 return RedirectToPage("./ForgotPasswordConfirmation");
             }

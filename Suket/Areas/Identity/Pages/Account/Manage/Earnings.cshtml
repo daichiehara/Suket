@@ -1,0 +1,40 @@
+﻿@page
+@model EarningsModel
+@{
+    ViewData["Title"] = "Manage Earnings";
+    ViewData["ActivePage"] = ManageNavPages.Earnings;
+}
+
+<h3>収益</h3>
+
+@if (Model.DetailsSubmitted == true && !string.IsNullOrEmpty(Model.StripeAccountId))
+{
+    <p>ボタンを押すと外部リンク（stripe.com）にアクセスします。</p>
+    <button id="viewTransactionHistory" onclick="location.href='@Url.Action("StripeDashboard", "Stripe")'" class="btn btn-success">取引履歴を確認</button>
+}
+else
+{
+    <p>銀行口座を登録して報酬を受け取ってみよう！ボタンを押すと外部リンク（stripe.com）にアクセスします。</p>
+    <button onclick="location.href='@Url.Action("CreateAccount", "Stripe")'" class="btn btn-primary">銀行口座の登録</button>
+}
+
+<div id="loadingSpinner" class="d-none text-center mt-3">
+    <div class="spinner-border text-primary" role="status"></div>
+    <div>Loading...</div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $("#viewTransactionHistory").click(function () {
+                $(this).hide();
+                $("#loadingSpinner").removeClass("d-none");
+            });
+
+            $("button[onclick^='location.href']").click(function () {
+                $(this).hide();
+                $("#loadingSpinner").removeClass("d-none");
+            });
+        });
+    </script>
+}

@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>決済成功</title>
+    <script>
+        // 5秒後にリダイレクトする関数
+        function redirectToSubscriber() {
+            var postId = document.getElementById("postId").value;  // inputタグからpostIdを取得
+            var url = "https://localhost:7144/Posts/Subscriber/" + postId;
+            window.location.href = url;  // リダイレクト
+        }
+
+        // ページが読み込まれたときに5秒のタイマーを設定
+        window.onload = function () {
+            setTimeout(redirectToSubscriber, 5000);
+        }
+    </script>
+</head>
+<body>
+
+    <h2>決済が成功しました！</h2>
+    <p>5秒後に採用ページに戻ります。</p>
+
+    <!-- postIdを保存する隠しinput。サーバーサイドで適切な値をセットする -->
+    <input type="hidden" id="postId" value= "@ViewData["PostId"]"/>
+
+</body>
+</html>

@@ -1,7 +1,9 @@
 ﻿using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Stripe;
 using Suket.Models;
 
@@ -32,6 +34,7 @@ namespace Suket.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<IActionResult> HasStripeAccount()
         {
             var user = await _userManager.GetUserAsync(User);
@@ -40,13 +43,14 @@ namespace Suket.Controllers
                 return NotFound();
             }
 
-            var hasStripeAccount = !string.IsNullOrWhiteSpace(user.StripeAccountId);
+            var hasStripeAccount = !string.IsNullOrWhiteSpace(user.StripeAccountId) && user.DetailsSubmitted;
             return Json(new { hasStripeAccount = hasStripeAccount });
         }
 
 
 
         [HttpGet]
+        [Authorize]
         public async Task<IActionResult> CreateAccount()
         {
             StripeConfiguration.ApiKey = GetStripeAPIKeyFromAzureKeyVault();
@@ -99,6 +103,7 @@ namespace Suket.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<IActionResult> CreateAccountLink()
         {
             StripeConfiguration.ApiKey = GetStripeAPIKeyFromAzureKeyVault();
@@ -112,7 +117,7 @@ namespace Suket.Controllers
             {
                 Account = user.StripeAccountId,
                 RefreshUrl = "https://localhost:7144/Stripe/CreateAccountLink",
-                ReturnUrl = "https://localhost:7144/Stripe/UpdateAccountDetails",
+                ReturnUrl = "https://localhost:7144/Identity/Account/Manage/Earnings",
                 Type = "account_onboarding",
             };
             var service = new AccountLinkService();
@@ -122,7 +127,9 @@ namespace Suket.Controllers
             return Redirect(accountLink.Url);
         }
 
+        /*
         [HttpGet]
+        [Authorize]
         public async Task<IActionResult> UpdateAccountDetails()
         {
             StripeConfiguration.ApiKey = GetStripeAPIKeyFromAzureKeyVault();
@@ -142,8 +149,53 @@ namespace Suket.Controllers
 
             return RedirectToAction("Index", "Posts");
         }
+        */
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<IActionResult> Webhook()
+        {
+            
+            var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+
+            // Verify the webhook signature (for security)
+            const string endpointSecret = "whsec_f8cd12c25d871ad7eb78bc7549def9b8faac91b44837832b2a8cc1403f4ce01b";
+            try
+            {
+                var stripeEvent = EventUtility.ConstructEvent(json,
+                    Request.Headers["Stripe-Signature"], endpointSecret);
+
+                // Handle the event
+                if (stripeEvent.Type == Events.AccountUpdated)
+                {
+                    var account = stripeEvent.Data.Object as Account;
+                    // Retrieve the corresponding user in your database
+                    var user = await _userManager.Users.FirstOrDefaultAsync(u => u.StripeAccountId == account.Id);
+
+                    if (user != null)
+                    {
+                        user.DetailsSubmitted = account.DetailsSubmitted;
+                        user.ChargesEnabled = account.ChargesEnabled;
+                        await _userManager.UpdateAsync(user);
+                    }
+                }
+                // ... handle other event types
+                else
+                {
+                    Console.WriteLine("Unhandled event type: {0}", stripeEvent.Type);
+                }
+
+
+                // Return a response to Stripe to acknowledge receipt of the event
+                return Ok();
+            }
+            catch (StripeException e)
+            {
+                return BadRequest();
+            }
+        }
 
         [HttpPost]
+        [Authorize(Roles ="Admin")]
         public async Task<IActionResult> DeleteStripeAccount()
         {
             var user = await _userManager.GetUserAsync(User);
@@ -177,5 +229,65 @@ namespace Suket.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> StripeDashboard()
+        {
+            StripeConfiguration.ApiKey = GetStripeAPIKeyFromAzureKeyVault();
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null || string.IsNullOrEmpty(user.StripeAccountId))
+            {
+                // ユーザーが見つからない場合、またはStripeAccountIdが設定されていない場合の処理。
+                // 例えば、エラーメッセージを表示する、または別のページにリダイレクトする等。
+                return NotFound();
+            }
+
+            var service = new LoginLinkService();
+            var loginLink = service.Create(user.StripeAccountId);
+
+            return Redirect(loginLink.Url);
+        }
+
+
+
+        //const string endpointSecret = "whsec_f8cd12c25d871ad7eb78bc7549def9b8faac91b44837832b2a8cc1403f4ce01b";
+
+        /*
+        [HttpPost]
+        public async Task<IActionResult> ProcessWebhookEvent()
+        {
+            var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+            try
+            {
+                var stripeEvent = EventUtility.ConstructEvent(json,
+                    Request.Headers["Stripe-Signature"], endpointSecret);
+
+                // Handle the event
+                if (stripeEvent.Type == Events.PaymentIntentSucceeded)
+                {
+                    var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
+                    var chargeId = paymentIntent.Charges.Data[0].Id;
+
+                    // Use chargeId for your purposes.
+                    // Store chargeId into your database for later usage in transfers.
+
+                    handlePaymentIntentSucceeded(paymentIntent, chargeId);
+                }
+                // ... handle other event types
+                else
+                {
+                    Console.WriteLine("Unhandled event type: {0}", stripeEvent.Type);
+                }
+
+                return Ok();
+            }
+            catch (StripeException e)
+            {
+                return BadRequest();
+            }
+        }
+        */
     }
 }

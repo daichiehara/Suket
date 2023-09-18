@@ -38,26 +38,7 @@ namespace Suket.Controllers
             return View(user);
         }
 
-        /*
-        [AcceptVerbs("GET", "POST")]
-        public async Task<IActionResult> IsUserNameInUse(string username)
-        {
-            var user = await _userManager.FindByNameAsync(username);
-            return user == null ? Json(true) : Json($"Username {username} is already in use.");
-        }
-
-        [AcceptVerbs("GET", "POST")]
-        public async Task<IActionResult> IsEmailInUse(string email)
-        {
-            var user = await _userManager.FindByEmailAsync(email);
-            return user == null ? Json(true) : Json($"Email {email} is already in use.");
-        }
-
-        public IActionResult Register()
-        {
-            return View();
-        }
-        */
+        
         [AcceptVerbs("GET", "POST")]
         public async Task<IActionResult> IsUserNameInUse([Bind(Prefix = "Input.UserName")] string username)
         {
@@ -71,6 +52,17 @@ namespace Suket.Controllers
             var user = await _userManager.FindByEmailAsync(email);
             return user == null ? Json(true) : Json($"メールアドレス {email} は既に存在しています。");
         }
+
+        [AcceptVerbs("GET", "POST")]
+        public async Task<IActionResult> IsEmailAvailable([Bind(Prefix = "Input.NewEmail")] string newEmail)
+        {
+            var user = await _userManager.FindByEmailAsync(newEmail);
+            if (user == null)
+                return Json(true);
+            else
+                return Json($"このメールアドレスは既に登録されています。");
+        }
+
 
 
         [HttpPost]

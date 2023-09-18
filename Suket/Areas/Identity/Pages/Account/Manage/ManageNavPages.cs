@@ -35,6 +35,9 @@ namespace  Suket.Areas.Identity.Pages.Account.Manage
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
+        /// 
+        public static string Earnings => "Earnings";
+
         public static string DownloadPersonalData => "DownloadPersonalData";
 
         /// <summary>
@@ -83,6 +86,8 @@ namespace  Suket.Areas.Identity.Pages.Account.Manage
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
+        public static string EarningsNavClass(ViewContext viewContext) => PageNavClass(viewContext, Earnings);
+
         public static string DownloadPersonalDataNavClass(ViewContext viewContext) => PageNavClass(viewContext, DownloadPersonalData);
 
         /// <summary>

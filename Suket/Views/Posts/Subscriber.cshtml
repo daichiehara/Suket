@@ -5,29 +5,98 @@
 
 
 @{
+    ViewData["Title"] = "Subscriber";
+
     var currentUser = await userManager.GetUserAsync(User);
     bool isLoggedIn = signInManager.IsSignedIn(User) && currentUser != null;
+
+    DateTimeOffset postTimeOffset = (DateTimeOffset)ViewData["PostTime"];
+    DateTime postTime = postTimeOffset.UtcDateTime; // UTC時間に変換
+    bool isPastPostTime = DateTime.UtcNow > postTime; // UTCの現在時刻を使用
+
+    State postState = (State)ViewData["PostState"];
 }
 <head>
     <link rel="stylesheet" href="/css/Subscriber.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+    <!-- Add this to the <head> section of your page or layout -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 </head>
+
+<style>
+.back-arrow {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    background-color: blue;
+    border-radius: 50%; /* 丸い形にする */
+    color: white; /* アイコンの色を白にする */
+    text-align: center;
+    line-height: 40px; /* アイコンを中央に配置 */
+    cursor: pointer; /* マウスオーバー時にポインターを表示 */
+}
+.back-arrow .material-symbols-outlined {
+    vertical-align: middle; /* アイコンを垂直方向に中央に配置 */
+}
+</style>
+
+<body>
+    <span class="back-arrow" onclick="history.back()" title="back">
+        <span class="material-symbols-outlined">
+            arrow_back
+        </span>
+    </span>
+
+@if (postState == State.End)
+{
+    <div class="alert alert-warning mt-3">
+        募集終了したので新たに採用することはできません。
+    </div>
+}
+else if (postState == State.Cancel)
+{
+    <div class="alert alert-warning mt-3">
+        この募集は中止されたので新たに採用することはできません。
+    </div>
+}
+else if (isPastPostTime)
+{
+    <div class="alert alert-warning mt-3">
+        開催日時が過ぎているので新たに採用することはできません。
+    </div>
+}
 
 <div class="container">
     <div class="list">
-        <h2>応募者一覧</h2>
-        <ul id="applicant-list">
-            @foreach (var user in Model.Applicants)
+    <h2>応募者一覧</h2>
+        <ul id="applicant-list" data-post-id="@ViewData["PostId"]">
+        @foreach (var user in Model.Applicants)
+        {
+            bool isAdopted = Model.Adoptees.Any(a => a.Id == user.Id);
+            <li data-user-id="@user.Id">
+                @if (!isAdopted && !isPastPostTime) // 現在の時間がpostのtimeより前の場合のみ表示
             {
-                <li data-user-id="@user.Id">
-                    @(user.NickName ?? user.UserName)
-                    @if (isLoggedIn && (ViewData["PostUserId"].ToString() == currentUser.Id))
-                    {
-                        <button class="adopt-button" data-user-id="@user.Id" data-post-id="@ViewData["PostId"]">採用</button>
-                    }
-                </li>
+                <input type="checkbox" class="select-user" data-user-id="@user.Id" data-post-id="@ViewData["PostId"]">
             }
-        </ul>
+                <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@user.UserName">@(user.NickName ?? user.UserName)</a>
+            </li>
+        }
+    </ul>
+        @if (isLoggedIn && (ViewData["PostUserId"].ToString() == currentUser.Id) && !isPastPostTime) // 現在の時間がpostのtimeより前の場合のみ表示
+        {
+            <button id="adopt-selected-users" class="btn btn-primary">選択したユーザーを採用</button>
+            <br />
+        }
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="d-none text-center mt-3">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div>Loading...</div>
+        </div>
+        <br />
     </div>
+
 
     <div class="list">
         <h2>採用者一覧</h2>
@@ -41,44 +110,65 @@
         </ul>
     </div>
 </div>
-
+</body>
 
 @section Scripts {
     <script>
         $(function () {
-            // Set the button color to yellow for adopted users on load
-            $('#adopted-list li').each(function () {
-                var userId = $(this).data('user-id');
-                $('.adopt-button[data-user-id=' + userId + ']').css('background-color', 'yellow').prop('disabled', true);
-            });
-
-            $('.adopt-button').click(function () {
-                var button = $(this);
-                var userId = button.data('user-id');
-                var postId = button.data('post-id');
-
-                $.ajax({
-                    url: '/Posts/Adopt',
-                    method: 'POST',
-                    data: { userId: userId, postId: postId },
-                    success: function (data) {
-                        if (data.success) {
-                            if (data.isAdopted) {
-                                // Change the button color to yellow and disable it
-                                button.css('background-color', 'yellow').prop('disabled', true);
-
-                                // Create a copy of the list item and append it to the adopted list
-                                var listItem = $('li[data-user-id=' + userId + ']').clone();
-                                listItem.find('.adopt-button').remove(); // Add this line to remove the button from the clone
-                                listItem.appendTo('#adopted-list');
-                            }
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    }
+            $('#adopt-selected-users').click(async function () {
+                // Show the spinner
+                $('#loading').removeClass('d-none');
+                var userIds = [];
+                $('.select-user:checked').each(function () {
+                    userIds.push($(this).data('user-id'));
                 });
+
+                if (userIds.length === 0) {
+                    alert('採用するユーザーを選択してください。');
+                    $('#loading').addClass('d-none'); // Hide the spinner if no user is selected
+                    return;
+                }
+
+                var postId = $('#applicant-list').data('post-id');
+
+                // Step 1: Check the reward and decide the flow
+                var response = await $.ajax({
+                    url: '/Posts/CreateCheckoutSession',
+                    method: 'POST',
+                    data: { userIds: userIds, postId: postId }
+                });
+
+                if (response.reward === 0) {
+                    // If reward is 0, directly adopt the users
+                    $.ajax({
+                        url: '/Posts/Adopt',
+                        method: 'POST',
+                        data: { userIds: userIds, postId: postId },
+                        success: function (data) {
+                            if (data.success) {
+                                // Reload the page to reflect the changes
+                                location.reload();
+                            } else {
+                                alert('Error: ' + data.error);
+                                $('#loading').addClass('d-none'); // Hide the spinner in case of an error
+                            }
+                        }
+                    });
+                } else {
+                    // If there's a reward, proceed with the payment flow
+                    var stripe = Stripe('pk_test_51NOazSCtzLwFlO8auPQ8fbTs7g3XUGuacXM4ww3cHUQhs4n2wEggHp7IJO4LHN7nKufFIrwEa2SGTO3kavmOat4u00FGyurm7u');  // Replace with your Stripe public key
+                    stripe.redirectToCheckout({
+                        sessionId: response.sessionId
+                    }).then(function (result) {
+                        alert(result.error.message);
+                        $('#loading').addClass('d-none'); // Hide the spinner after redirect
+                    });
+                }
             });
         });
+
+
     </script>
 }
+
 

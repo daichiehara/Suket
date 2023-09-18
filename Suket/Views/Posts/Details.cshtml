@@ -15,6 +15,7 @@
 
 <head>
     <link rel="stylesheet" href="/css/PostDetails.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 </head>
 @{
     var successMessage = TempData["SuccessMessage"] as string;
@@ -26,17 +27,29 @@
     }
 }
 
+@Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+<span class="back-arrow" onclick="history.back()" title="back">
+    <span class="material-symbols-outlined">
+        arrow_back
+    </span>
+</span>
 <div>
     <h4>@Html.DisplayFor(model => model.Title)</h4>
     <hr />
     @{
         var displayName = Model.UserAccount.NickName ?? Model.UserAccount.UserName;
     }
-    <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@Model.PostId">出席確認</a>
-    <br />
+    
     <dl class="row">
         <dt class="col-sm-2">
-            掲載者
+            @Html.DisplayNameFor(model => model.PostId)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.PostId)
+        </dd>
+        <dt class="col-sm-2">
+            募集者
         </dt>
         <dd class="col-sm-10">
             <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@Model.UserAccount.UserName">@displayName</a>
@@ -110,15 +123,24 @@
     }
 </div>
 
+@{
+    var userAdoptionPosts = ViewData["UserAdoptionPosts"] as Dictionary<int, bool>;
+    //var isAdopted = userAdoptionPosts?[a.PostId] ?? false;
+    var isAdoptedUser = userAdoptionPosts?.ContainsKey(Model.PostId) == true ? userAdoptionPosts[Model.PostId] : false;
+}
+
 <div style="display:inline-block;">
-    <button class="subscription-button" style="margin-right:10px;" data-post-id="@Model.PostId">いいね</button>
-    <a asp-action="Index">募集一覧へ</a>
+    <button class="subscription-button" style="margin-right:10px;" data-post-id="@Model.PostId">応募</button>
+    @if (isAdoptedUser)
+    {
+        <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@Model.PostId" class="btn btn-success">出席確認</a>
+    }
 </div>
 
 <hr />
 <div style="margin-bottom: 20px;">
     <h3 style="display: inline; margin-right: 20px;">コメント</h3>
-    <span style="margin-right: 10px;"> 掲載者<span class="badge bg-success">✔</span></span>
+    <span style="margin-right: 10px;"> 募集者<span class="badge bg-success">✔</span></span>
     <span style="margin-right: 10px;">採用者<span class="badge bg-yellow">✔</span></span>
     <span>応募者<span class="badge bg-red">✔</span></span>
 </div>
@@ -198,23 +220,16 @@ else
         <input type="hidden" name="PostId" value="@Model.PostId" />
         <textarea id="message" name="Message" class="form-control" style="flex-grow: 1; margin-right: 10px; border: 2px solid #007bff; box-shadow: 2px 2px 5px rgba(0,0,0,0.2);" rows="1" placeholder="ここで質問やコメントができます。" maxlength="200"></textarea>
         <button type="submit" class="btn btn-primary" style="width: 80px;">送信</button>
+        <p asp-validation-for="Message" class="text-danger"></p>
     </form>
 </div>
 
 <!-- End Reply Form -->
 
-<a asp-action="Index">募集一覧へ</a>
 <br />
 <br />
 
-<script>
-    document.querySelector('#message').addEventListener('keydown', function(e) {
-        if (e.key == 'Enter' && !e.shiftKey) { // Shiftキーが押されていないときだけ送信する
-            e.preventDefault(); // Enterによる新しい行の作成を防ぐ
-            document.querySelector('#message-form').submit(); // フォームを送信する
-        }
-    });
-</script>
+
 
 @section Scripts {
     <script>
@@ -258,5 +273,18 @@ else
                 });
             });
         });
+
+        
+        document.querySelector('#message').addEventListener('keydown', function (e) {
+            if (e.key == 'Enter' && !e.shiftKey) { // Shiftキーが押されていないときだけ送信する
+                e.preventDefault(); // Enterによる新しい行の作成を防ぐ
+                var messageContent = document.querySelector('#message').value.trim();
+                if (messageContent) { // メッセージがnullまたは空でないことを確認
+                    document.querySelector('#message-form').submit(); // フォームを送信する
+                }
+            }
+        });
+
+    
     </script>
 }

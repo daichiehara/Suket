@@ -29,6 +29,9 @@ builder.Services.AddDefaultIdentity<UserAccount>()
 // Add configuration for IdentityOptions
 builder.Services.Configure<IdentityOptions>(options =>
 {
+    
+    options.Password.RequireNonAlphanumeric = false;
+    
     // Other settings...
 
     options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._";
@@ -46,6 +49,12 @@ builder.Services.AddSingleton<ISuketEmailSender, EmailSender>(i =>
 builder.Services.AddSingleton<INotificationService, NotificationService>();
 
 builder.Services.AddHostedService<UpdatePostStatusBackgroundService>();
+
+builder.Services.AddHostedService<TimedHostedService>();
+
+
+
+//builder.Services.Configure<DataProtectionTokenProviderOptions>(opts => opts.TokenLifespan = TimeSpan.FromHours(10));
 
 
 var app = builder.Build();
@@ -102,6 +111,11 @@ app.MapControllerRoute(
     name: "isEmailInUse",
     pattern: "Users/IsEmailInUse",
     defaults: new { controller = "Users", action = "IsEmailInUse" });
+
+app.MapControllerRoute(
+    name: "isEmailAvailable",
+    pattern: "Users/IsEmailAvailable",
+    defaults: new { controller = "Users", action = "IsEmailAvailable" });
 
 app.MapControllerRoute(
     name: "userProfile",

@@ -98,6 +98,17 @@ input:checked + .slider:before {
     z-index: 10; /* add this to ensure the end-banner is not hidden by other elements */
 }
 
+.cancel-banner {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: yellow;
+    color: black;
+    padding: 5px;
+    font-size: 0.8em;
+    z-index: 10;
+}
+
 .post-container {
     display: grid;
     grid-template-columns: 1fr; /* By default, only one column */

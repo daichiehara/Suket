@@ -7,19 +7,24 @@
 @inject SignInManager<UserAccount> signInManager;
 
 @{
+    ViewData["Title"] = "My Posts";
     var currentUser = await userManager.GetUserAsync(User);
     bool isLoggedIn = signInManager.IsSignedIn(User) && currentUser != null;
 }
 <head>
     <link rel="stylesheet" href="/css/PostIndex.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
 </head>
 
 
 <h1>自分の募集</h1>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
+<div class="fixed-button-container">
+    <a asp-action="Create" class="fixed-button btn btn-primary">
+        <i class="fas fa-plus"></i>
+    </a>
+</div>
+
 
 <div class="post-container">
     @foreach (var a in Model)
@@ -29,6 +34,11 @@
             {
                 <div class="end-banner">募集終了</div>
             }
+            else if (a.State == State.Cancel)
+            {
+                <div class="cancel-banner">中止</div>
+            }
+
             @{
                 var timeDifference = DateTimeOffset.UtcNow - a.Created;
                 string timeDifferenceString;
@@ -58,11 +68,11 @@
             <pre style="white-space: pre-wrap;">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre>
             <p>@Html.DisplayFor(modelItem => a.Genre)</p>
             <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
-
+            <p>応募 @(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId]) 件</p>
             <!--<button class="subscription-button" data-post-id="@a.PostId">いいね</button>
             <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
-
-            @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
+            -->
+            @if (isLoggedIn && ((currentUser != null) && (a.UserAccountId == currentUser.Id)))
             {
                 var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
                 var adoptionExists = adoptions.ContainsKey(a.PostId) && adoptions[a.PostId];
@@ -80,7 +90,7 @@
                                 <a asp-action="Delete" asp-route-id="@a.PostId">削除</a>
                     }
                     </p>
-            }-->
+            }
 
 
         </section>
@@ -103,8 +113,10 @@
         if ((int)ViewData["TotalCount"] != 0)
         {
             <text> @ViewData["TotalCount"] 件/@ViewData["TotalPages"] ページ中/@ViewData["CurrentPage"] ページ目</text>
-            <div style="text-align:center;">
-                @Html.PagedListPager(Model, page => Url.Action("MyPosts", new { page }), Bootstrap4PagedListRenderOptions.ClassicPlusFirstAndLast)
+            <div style="display: flex; justify-content: center;">
+                <div style="text-align:center;">
+                    @Html.PagedListPager(Model, page => Url.Action("MyPosts", new { page }), Bootstrap4PagedListRenderOptions.ClassicPlusFirstAndLast)
+                </div>
             </div>
         }
         else

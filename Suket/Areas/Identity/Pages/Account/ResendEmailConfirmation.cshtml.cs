@@ -13,16 +13,17 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using Suket.Models;
 
 namespace Suket.Areas.Identity.Pages.Account
 {
     [AllowAnonymous]
     public class ResendEmailConfirmationModel : PageModel
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly IEmailSender _emailSender;
+        private readonly UserManager<UserAccount> _userManager;
+        private readonly ISuketEmailSender _emailSender;
 
-        public ResendEmailConfirmationModel(UserManager<IdentityUser> userManager, IEmailSender emailSender)
+        public ResendEmailConfirmationModel(UserManager<UserAccount> userManager, ISuketEmailSender emailSender)
         {
             _userManager = userManager;
             _emailSender = emailSender;
@@ -64,7 +65,7 @@ namespace Suket.Areas.Identity.Pages.Account
             var user = await _userManager.FindByEmailAsync(Input.Email);
             if (user == null)
             {
-                ModelState.AddModelError(string.Empty, "Verification email sent. Please check your email.");
+                ModelState.AddModelError(string.Empty, "確認メールが送信されました。 メールを確認してください。");
                 return Page();
             }
 
@@ -79,9 +80,10 @@ namespace Suket.Areas.Identity.Pages.Account
             await _emailSender.SendEmailAsync(
                 Input.Email,
                 "Confirm your email",
-                $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                $"以下のボタンを押すことでメールアドレスの確認が完了し、すべてのサービスが利用できるようになります。<br />" +
+                $"<a href='{HtmlEncoder.Default.Encode(callbackUrl)}' style='display: inline-block; padding: 10px 20px; border-radius: 5px; background-color: #4CAF50; color: white; text-decoration: none;'>メールアドレスを確認する</a><br /><br />Mint SPORTSサポートチーム");
 
-            ModelState.AddModelError(string.Empty, "Verification email sent. Please check your email.");
+            ModelState.AddModelError(string.Empty, "確認メールが送信されました。 メールを確認してください。");
             return Page();
         }
     }

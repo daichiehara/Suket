@@ -19,9 +19,9 @@ namespace Suket.Areas.Identity.Pages.Account
     public class RegisterConfirmationModel : PageModel
     {
         private readonly UserManager<UserAccount> _userManager;
-        private readonly IEmailSender _sender;
+        private readonly ISuketEmailSender _sender;
 
-        public RegisterConfirmationModel(UserManager<UserAccount> userManager, IEmailSender sender)
+        public RegisterConfirmationModel(UserManager<UserAccount> userManager, ISuketEmailSender sender)
         {
             _userManager = userManager;
             _sender = sender;

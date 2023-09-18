@@ -10,6 +10,7 @@ namespace Suket.Models
         public int ReplyId { get; set; }
 
         [Display(Name = "メッセージ")]
+        [Required]
         [StringLength(200, ErrorMessage = "メッセージは200文字以内で入力してください。")]
         public string Message { get; set;}
         

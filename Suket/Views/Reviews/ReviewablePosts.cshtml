@@ -1,4 +1,8 @@
-﻿<h2>評価を待っているPost</h2>
+﻿@{
+    ViewData["Title"] = "Review";
+}
+
+<h2>評価を待っているユーザー</h2>
 <div class="row row-cols-1 row-cols-md-3 g-4">
     @foreach (var reviewablePost in Model)
     {

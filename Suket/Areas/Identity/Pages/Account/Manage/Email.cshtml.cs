@@ -20,12 +20,12 @@ namespace Suket.Areas.Identity.Pages.Account.Manage
     {
         private readonly UserManager<UserAccount> _userManager;
         private readonly SignInManager<UserAccount> _signInManager;
-        private readonly IEmailSender _emailSender;
+        private readonly ISuketEmailSender _emailSender;
 
         public EmailModel(
             UserManager<UserAccount> userManager,
             SignInManager<UserAccount> signInManager,
-            IEmailSender emailSender)
+            ISuketEmailSender emailSender)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -70,6 +70,7 @@ namespace Suket.Areas.Identity.Pages.Account.Manage
             /// </summary>
             [Required]
             [EmailAddress]
+            [Remote(action:"IsEmailAvailable", controller: "Users", ErrorMessage = "このメールアドレスは既に登録されています。")]
             [Display(Name = "New email")]
             public string NewEmail { get; set; }
         }
@@ -127,13 +128,14 @@ namespace Suket.Areas.Identity.Pages.Account.Manage
                 await _emailSender.SendEmailAsync(
                     Input.NewEmail,
                     "Confirm your email",
-                    $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    $"以下のボタンを押すことでメールアドレスの確認が完了し、すべてのサービスが利用できるようになります。<br />" + 
+                    $"<a href='{HtmlEncoder.Default.Encode(callbackUrl)}' style='display: inline-block; padding: 10px 20px; border-radius: 5px; background-color: #4CAF50; color: white; text-decoration: none;'>メールアドレスを確認する</a><br /><br />MintSPORTSサポートチーム");
 
-                StatusMessage = "Confirmation link to change email sent. Please check your email.";
+                StatusMessage = "メールアドレスを変更するための確認リンクを送信しました。 メールを確認してください。";
                 return RedirectToPage();
             }
 
-            StatusMessage = "Your email is unchanged.";
+            StatusMessage = "あなたのメールアドレスは変更されていません。";
             return RedirectToPage();
         }
 
@@ -163,9 +165,10 @@ namespace Suket.Areas.Identity.Pages.Account.Manage
             await _emailSender.SendEmailAsync(
                 email,
                 "Confirm your email",
-                $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                $"以下のボタンを押すことでメールアドレスの確認が完了し、すべてのサービスが利用できるようになります。<br />" +
+                $"<a href='{HtmlEncoder.Default.Encode(callbackUrl)}' style='display: inline-block; padding: 10px 20px; border-radius: 5px; background-color: #4CAF50; color: white; text-decoration: none;'>メールアドレスを確認する</a><br /><br />Mint SPORTSサポートチーム");
 
-            StatusMessage = "Verification email sent. Please check your email.";
+            StatusMessage = "確認メールが送信されました。 メールを確認してください。";
             return RedirectToPage();
         }
     }

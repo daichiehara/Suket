@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -118,6 +119,8 @@ namespace Suket.Models
         Recruiting = 1,
         [Display(Name = "募集終了")]
         End = 2,
+        [Display(Name ="中止")]
+        Cancel = 3,
     }
 
     public class Post
@@ -137,9 +140,9 @@ namespace Suket.Models
         [Display(Name = "開催日時")]
         public DateTimeOffset Time { get; set; }
         [Display(Name = "持ち物")]
-        [Required]
         public string Item { get; set; }
         [Display(Name = "報酬")]
+        [Remote(action: "VerifyReward", controller: "Posts")]
         public int Reward { get; set; }
         [Display(Name = "メッセージ")]
         [StringLength(500, ErrorMessage = "メッセージは500文字以内で入力してください。")]
@@ -153,6 +156,8 @@ namespace Suket.Models
 
         [Display(Name = "認証")]
         public int Certification { get; set; }
+
+
         public string UserAccountId { get; set; }
         [ForeignKey("UserAccountId")]
         [ValidateNever]
@@ -169,5 +174,7 @@ namespace Suket.Models
         public virtual ICollection<Review> Reviews { get; set; }
         [ValidateNever]
         public virtual ICollection<Confirm> Confirms { get; set; }
+        [ValidateNever]
+        public virtual ICollection<PaymentRecord> PaymentRecords { get; set; }
     }
 }

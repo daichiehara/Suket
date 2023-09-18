@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using System.Web;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using LinqKit;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -15,6 +17,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json.Linq;
 using Stripe;
+using Stripe.Checkout;
 using Suket.Data;
 using Suket.Models;
 using X.PagedList;
@@ -28,15 +31,27 @@ namespace Suket.Controllers
         private readonly SignInManager<UserAccount> _signInManager;
         private readonly ISuketEmailSender _emailSender;
         private readonly INotificationService _notificationService;
+        private readonly ILogger<PostsController> _logger;
 
-
-        public PostsController(ApplicationDbContext context, UserManager<UserAccount> userManager, SignInManager<UserAccount> signInManager, ISuketEmailSender emailSender, INotificationService notificationService)
+        public PostsController(ApplicationDbContext context, UserManager<UserAccount> userManager, SignInManager<UserAccount> signInManager, ISuketEmailSender emailSender, INotificationService notificationService, ILogger<PostsController> logger)
         {
             _context = context;
             _userManager = userManager;
             _signInManager = signInManager;
             _emailSender = emailSender;
             _notificationService = notificationService;
+            _logger = logger;
+        }
+
+        private static string GetStripeAPIKeyFromAzureKeyVault()
+        {
+            var keyVaultUrl = "https://stripetestapikey.vault.azure.net/";
+            var secretName = "StripeTestAPIKey";
+
+            var client = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
+            KeyVaultSecret stripeAPIKeySecret = client.GetSecret(secretName);
+
+            return stripeAPIKeySecret.Value;
         }
 
         // GET: Posts
@@ -84,29 +99,48 @@ namespace Suket.Controllers
             var postsQuery = _context.Post
                 .Include(p => p.UserAccount)
                 .Include(p => p.Subscriptions)
-                .Where(p => p.State != State.End)
-                .OrderBy(p => p.Created);
+                .Where(p => (p.State != State.End) && (p.State != State.Cancel))
+                .OrderByDescending(p => p.Created);
 
             // Filter posts by genre
             if (genre != null)
             {
                 postsQuery = postsQuery.Where(p => p.Genre == genre)
-                                       .OrderBy(p => p.Created);
+                                       .OrderByDescending(p => p.Created);
             }
 
             // Filter posts by prefecture
             if (prefecture != null)
             {
                 postsQuery = postsQuery.Where(p => p.Prefecture == prefecture)
-                                       .OrderBy(p => p.Created);
+                                       .OrderByDescending(p => p.Created);
             }
 
             // Full text search by searchString
+            /*
             if (!string.IsNullOrEmpty(searchString))
             {
                 postsQuery = postsQuery.Where(p => p.Title.Contains(searchString) || p.Message.Contains(searchString))
                                        .OrderBy(p => p.Created);
             }
+            */
+            // Full text search by searchString
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                var searchWords = searchString.Split(' ').Where(word => !string.IsNullOrEmpty(word)).ToList();
+
+                var searchPredicate = PredicateBuilder.New<Post>(false);  // 'false' means start with OR condition
+                foreach (var word in searchWords)
+                {
+                    string tempWord = word;  // necessary for correct closure capture
+                    searchPredicate = searchPredicate.Or(p => p.Title.Contains(tempWord));
+                    searchPredicate = searchPredicate.Or(p => p.Message.Contains(tempWord));
+                }
+
+                postsQuery = postsQuery.Where(searchPredicate)
+                                       .OrderByDescending(p => p.Created);
+            }
+
 
             if (fromDateTime != null)
             {
@@ -190,12 +224,18 @@ namespace Suket.Controllers
         // GET: Posts/Details/5
         public async Task<IActionResult> Details(int? id)
         {
+            if (TempData["ErrorMessage"] != null)
+            {
+                ModelState.AddModelError(string.Empty, TempData["ErrorMessage"].ToString());
+            }
+
             var currentUser = await _userManager.GetUserAsync(User);
             // Only get posts where State != State.End
+            //state.endにもんだいあり
             var posts = await _context.Post
                 .Include(p => p.UserAccount)
                 .Include(p => p.Subscriptions)
-                .Where(p => p.State != State.End)
+                //.Where(p => p.State != State.End)
                 .ToListAsync();
 
             if (id == null || _context.Post == null)
@@ -215,6 +255,7 @@ namespace Suket.Controllers
             var replies = await _context.Reply
                 .Where(r => r.PostId == id)
                 .Include(r => r.UserAccount)  // If you want to display information about the user who made the reply
+                .OrderBy(r => r.Created)
                 .ToListAsync();
 
             // Store the replies in the ViewData
@@ -256,7 +297,7 @@ namespace Suket.Controllers
 
                 var userAdoptions = _context.Adoption
                     .Where(a => a.UserAccountId == currentUser.Id)
-                .Select(a => a.PostId);
+                    .Select(a => a.PostId);
 
                 userSubscriptionPosts = posts.ToDictionary(
                     p => p.PostId,
@@ -276,6 +317,7 @@ namespace Suket.Controllers
         }
 
         // GET: Posts/Create
+        [Authorize]
         public IActionResult Create()
         {
             ViewData["UserAccountId"] = new SelectList(_context.Users, "Id", "Id");
@@ -328,7 +370,19 @@ namespace Suket.Controllers
             return View(post);
         }
 
+        [AcceptVerbs("GET", "POST")]
+        public IActionResult VerifyReward(int Reward)
+        {
+            if (Reward != 0 && Reward < 500)
+            {
+                return Json("報酬は0もしくは500円以上にしてください。");
+            }
+
+            return Json(true);
+        }
+
         // GET: Posts/Edit/5
+        [Authorize]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Post == null)
@@ -341,6 +395,10 @@ namespace Suket.Controllers
             {
                 return NotFound();
             }
+
+            var jstZone = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+            post.Time = TimeZoneInfo.ConvertTimeFromUtc(post.Time.UtcDateTime, jstZone);
+
             ViewData["UserAccountId"] = new SelectList(_context.Users, "Id", "Id", post.UserAccountId);
             return View(post);
         }
@@ -350,7 +408,8 @@ namespace Suket.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("PostId,Title,PeopleCount,Prefecture,Place,Time,Item,Reward,Message,Created,Genre,State,UserAccountId")] Post post)
+        [Authorize]
+        public async Task<IActionResult> Edit(int id, [Bind("PostId,Title,PeopleCount,Prefecture,Place,Time,Item,Reward,Message,Genre,State,Certification,UserAccountId")] Post post)
         {
             /*
             if (post.State == State.End)
@@ -370,6 +429,8 @@ namespace Suket.Controllers
 
             //元のエンティティのUserAccountIdを新しいエンティティのUserAccountIdに設定します。
             post.UserAccountId = originalPost.UserAccountId;
+            post.Created = originalPost.Created;
+            post.Certification = originalPost.Certification;
 
             if (id != post.PostId)
             {
@@ -378,6 +439,79 @@ namespace Suket.Controllers
 
             if (ModelState.IsValid)
             {
+                post.Time = post.Time.ToUniversalTime();
+
+                // StateがCancelに変更されたかどうかを確認
+                if (originalPost.State != State.Cancel && post.State == State.Cancel)
+                {
+                    var paymentRecords = await _context.PaymentRecord
+                                                       .Where(pr => pr.PostId == id)
+                                                       .ToListAsync();
+
+                    var uniquePaymentIntentIds = paymentRecords.Select(pr => pr.PaymentIntentId)
+                                                               .Distinct()
+                                                               .ToList();
+
+                    StripeConfiguration.ApiKey = GetStripeAPIKeyFromAzureKeyVault();
+                    foreach (var paymentIntentId in uniquePaymentIntentIds)
+                    {
+                        // Get the amount for this paymentIntentId to calculate the refund amount
+                        var paymentIntentService = new PaymentIntentService();
+                        var paymentIntent = paymentIntentService.Get(paymentIntentId);
+                        long amountToRefund = paymentIntent.AmountReceived;
+
+                        // Calculate the number of days between now and the post time
+                        var daysBeforePostTime = (post.Time - DateTime.UtcNow).TotalDays;
+
+                        // Determine the refund percentage based on the days before post time
+                        double refundPercentage;
+                        if (daysBeforePostTime > 5)
+                        {
+                            refundPercentage = 1.0; // 100% refund
+                        }
+                        else if (daysBeforePostTime > 2)
+                        {
+                            refundPercentage = 0.8; // 80% refund
+                        }
+                        else
+                        {
+                            refundPercentage = 0.5; // 50% refund
+                        }
+
+                        // Calculate the amount to refund
+                        amountToRefund = (long)(amountToRefund * refundPercentage);
+
+                        // 返金処理
+                        try
+                        {
+                            // Stripe APIを使用して返金処理を行う（Stripe SDKの設定が必要）
+                            // ここにStripeの返金APIを呼び出すコードを追加
+                            var refundService = new RefundService();
+                            var refundOptions = new RefundCreateOptions
+                            {
+                                PaymentIntent = paymentIntentId,
+                                Amount = amountToRefund,
+                                // 追加のオプションが必要な場合はここで設定します
+                            };
+                            var refund = refundService.Create(refundOptions);
+
+                            // 返金が成功したら、PaymentRecordを更新
+                            var recordsToUpdate = paymentRecords.Where(pr => pr.PaymentIntentId == paymentIntentId);
+                            foreach (var record in recordsToUpdate)
+                            {
+                                record.Refunded = true;  // Refunded: 返金が行われたことを示す新しいプロパティ
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // エラーハンドリング（ログの記録やユーザーへのフィードバック等）
+                            _logger.LogError(ex, "Refund failed for PaymentIntentId: {PaymentIntentId}", paymentIntentId);
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                }
+
                 try
                 {
                     _context.Update(post);
@@ -394,7 +528,9 @@ namespace Suket.Controllers
                         throw;
                     }
                 }
+
                 return RedirectToAction(nameof(Index));
+                
             }
 
             if (!ModelState.IsValid)
@@ -422,6 +558,7 @@ namespace Suket.Controllers
         }
 
         // GET: Posts/Delete/5
+        [Authorize]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null || _context.Post == null)
@@ -446,6 +583,7 @@ namespace Suket.Controllers
         // POST: Posts/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var adoptionExists = await _context.Adoption.AnyAsync(a => a.PostId == id);
@@ -472,6 +610,7 @@ namespace Suket.Controllers
         
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> ToggleSubscription(int id)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -503,6 +642,7 @@ namespace Suket.Controllers
         }
 
         // PostsController.cs
+        [Authorize]
         public async Task<IActionResult> Subscriber(int? id)
         {
             if (id == null)
@@ -516,9 +656,14 @@ namespace Suket.Controllers
                 return NotFound();
             }
 
+            ViewData["PostTime"] = post.Time;
+
+
             ViewData["PostId"] = id;
 
             ViewData["PostUserId"] = post.UserAccountId;
+
+            ViewData["PostState"] = post.State;
 
             var subscriptions = await _context.Subscription
                 .Where(s => s.PostId == id)
@@ -552,46 +697,188 @@ namespace Suket.Controllers
 
         }
 
-
-        
         [HttpPost]
-        public async Task<IActionResult> Adopt(string userId, int postId)
+        [Authorize]
+        public async Task<IActionResult> Adopt(List<string> userIds, int postId)
         {
+            bool isAdopted = false;
+            List<string> errorMessages = new List<string>();
 
-            // Check if an adoption record already exists
-            var existingAdoption = await _context.Adoption
-                .Where(a => a.UserAccountId == userId && a.PostId == postId)
-                .FirstOrDefaultAsync();
-
-            bool isAdopted;
-
-            // If it does not exist, create it
-            if (existingAdoption == null)
+            foreach (var userId in userIds)
             {
-                var adoption = new Adoption
+                // Check if an adoption record already exists
+                var existingAdoption = await _context.Adoption
+                    .Where(a => a.UserAccountId == userId && a.PostId == postId)
+                    .FirstOrDefaultAsync();
+
+                // If it does not exist, create it
+                if (existingAdoption == null)
                 {
-                    UserAccountId = userId,
-                    PostId = postId
-                };
-                _context.Adoption.Add(adoption);
-                isAdopted = true;  // A new Adoption record is created
+                    var adoption = new Adoption
+                    {
+                        UserAccountId = userId,
+                        PostId = postId
+                    };
+                    _context.Adoption.Add(adoption);
+                    isAdopted = true;  // A new Adoption record is created
+                }
+                else
+                {
+                    isAdopted = true;  // An existing Adoption record is found
+                }
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException e)
+                {
+                    _logger.LogError(e, $"An error occurred while saving changes: {e.Message}");
+                    _logger.LogError(e.InnerException, $"Inner exception: {e.InnerException?.Message}");
+                    errorMessages.Add($"User ID {userId} Error: {e.Message}");
+                }
+
+            }
+
+            if (errorMessages.Count > 0)
+            {
+                return Json(new { success = false, error = errorMessages });
             }
             else
             {
-                isAdopted = true;  // An existing Adoption record is found
-            }
-
-            try
-            {
-                await _context.SaveChangesAsync();
                 return Json(new { success = true, isAdopted = isAdopted });
-            }
-            catch (Exception e)
-            {
-                return Json(new { success = false, error = e.Message });
             }
         }
 
+        // Controller
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> CreateCheckoutSession(List<string> userIds, int postId)
+        {
+            try
+            {
+                _logger.LogInformation("Starting CreateCheckoutSession process.");
+
+                StripeConfiguration.ApiKey = GetStripeAPIKeyFromAzureKeyVault();
+                _logger.LogInformation("Stripe API Key retrieved from Azure Key Vault.");
+
+                var post = await _context.Post.FindAsync(postId);
+                if (post == null)
+                {
+                    _logger.LogWarning($"Post with ID {postId} not found.");
+                    return NotFound();
+                }
+
+                // UserAccountを取得
+                var userAccount = await _context.Users.FindAsync(post.UserAccountId);
+                if (userAccount == null)
+                {
+                    _logger.LogWarning($"User account for post with ID {postId} not found.");
+                    return NotFound();
+                }
+
+                if (post.Reward == 0)
+                {
+                    _logger.LogInformation("Post reward is zero.");
+                    return Json(new { reward = 0 });
+                }
+
+                //var totalAmount = post.Reward * userIds.Count;
+                var options = new SessionCreateOptions
+                {
+                    CustomerEmail = userAccount.Email,
+                    Mode = "payment",
+                    PaymentMethodTypes = new List<string> { "card" },
+                    LineItems = new List<SessionLineItemOptions>
+                    {
+                        new SessionLineItemOptions
+                        {
+                            PriceData = new SessionLineItemPriceDataOptions
+                            {
+                                UnitAmount = post.Reward,
+                                Currency = "jpy",
+                                ProductData = new SessionLineItemPriceDataProductDataOptions
+                                {
+                                    Name = $"採用者({userIds.Count}人)への報酬",
+                                },
+                            },
+                            Quantity = userIds.Count,
+                        },
+                    },
+                    SuccessUrl = $"https://localhost:7144/Payment/Success?postId={postId}",
+                    CancelUrl = $"https://localhost:7144/Posts/Subscriber/{post.PostId}",
+                    Metadata = new Dictionary<string, string>
+                    {
+                        {"post_id", postId.ToString()},
+                        {"user_ids", string.Join(",", userIds)}
+                    }
+                };
+
+                var service = new SessionService();
+                Session session = service.Create(options);
+                _logger.LogInformation("Stripe session created successfully.");
+
+                return Json(new { sessionId = session.Id, reward = post.Reward });
+            }
+            catch (StripeException stripeEx)
+            {
+                _logger.LogError(stripeEx, "Error occurred with Stripe.");
+                return Json(new { error = stripeEx.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An unexpected error occurred.");
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> StripeWebhook()
+        {
+            var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+
+            var stripeEvent = EventUtility.ParseEvent(json);
+
+            if (stripeEvent.Type == "checkout.session.completed")
+            {
+                var session = stripeEvent.Data.Object as Session;
+
+                // Check if metadata exists and contains required keys
+                if (session.Metadata == null || !session.Metadata.ContainsKey("user_ids") || !session.Metadata.ContainsKey("post_id"))
+                {
+                    _logger.LogWarning("Missing metadata in the Stripe webhook event.");
+                    return BadRequest("Missing metadata.");
+                }
+
+                var userIds = session.Metadata["user_ids"].Split(',').ToList();
+                var postId = int.Parse(session.Metadata["post_id"]);
+
+                // New code: Create paymentRecord entries for each user based on the session's PaymentIntentId
+                foreach (var userId in userIds)
+                {
+                    var paymentRecord = new PaymentRecord
+                    {
+                        PaymentIntentId = session.PaymentIntentId,
+                        PostId = postId,
+                        UserAccountId = userId
+                    };
+                    _context.Add(paymentRecord);
+                }
+                _logger.LogInformation("Payment records added to context.");
+
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Changes saved to database.");
+
+                return await Adopt(userIds, postId);
+            }
+
+            return Ok();
+        }
+
+
+
+
+        [Authorize]
         public async Task<IActionResult> MySubscribedPosts(bool showAdopted = false)
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -609,6 +896,7 @@ namespace Suket.Controllers
                 .Where(p => userSubscriptionsIds.Contains(p.PostId))
                 .Include(p => p.Subscriptions)
                 .Include(p => p.UserAccount) // Add this line
+                .OrderByDescending(p => p.Created)
                 .ToListAsync();
 
 
@@ -640,6 +928,7 @@ namespace Suket.Controllers
             return View(userSubscriptions);
         }
 
+        [Authorize]
         public async Task<IActionResult> MyPosts(int? page)
         {
             var currentUser = await _userManager.GetUserAsync(User);
@@ -651,6 +940,7 @@ namespace Suket.Controllers
             var myPosts = await _context.Post
                 .Where(p => p.UserAccountId == currentUser.Id)
                 .Include(p => p.Subscriptions)
+                .OrderByDescending(p => p.Created)
                 .ToListAsync();
 
             // Like counts for each post
@@ -704,8 +994,16 @@ namespace Suket.Controllers
 
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> CreateReply(int PostId, string Message)
         {
+
+            if (string.IsNullOrWhiteSpace(Message))
+            {
+                TempData["ErrorMessage"] = "メッセージを入力してください。";
+                return RedirectToAction(nameof(Details), new { id = PostId });
+            }
+
             var userId = _userManager.GetUserId(User);  // Get the ID of the currently logged in user
             var reply = new Suket.Models.Reply
             {
@@ -737,7 +1035,7 @@ namespace Suket.Controllers
                     foreach (var user in subscriberUsers)
                     {
                         var usernameOrNickname = !string.IsNullOrEmpty(user.NickName) ? user.NickName : user.UserName;
-                        var body = string.Format(Resources.Notification.NewCommentNotificationBody, usernameOrNickname, Message);
+                        var body = string.Format(Resources.Notification.NewCommentNotificationBody, usernameOrNickname, "応募","募集者", Message, PostId);
 
                         await _notificationService.SendEmailNotification(user.Email, subject, body);
                     }
@@ -750,7 +1048,7 @@ namespace Suket.Controllers
 
                     // Get the email subject and body from the resource file
                     var subject = Resources.Notification.NewCommentNotificationSubject;
-                    var body = string.Format(Resources.Notification.NewCommentNotificationBody, selectName, Message);
+                    var body = string.Format(Resources.Notification.NewCommentNotificationBody, selectName,"募集","応募者", Message, PostId);
 
                     // Send a notification to the poster
                     await _emailSender.SendEmailAsync(posterEmail, subject, body);
@@ -763,6 +1061,7 @@ namespace Suket.Controllers
 
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SendGreeting()
         {
             var user = await _userManager.GetUserAsync(User);
