@@ -7,13 +7,44 @@ using Suket.Models;
 using System;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using Amazon;
+using Amazon.SecretsManager;
+using Amazon.SecretsManager.Model;
+using Stripe;
+using System.Text.Json;
+using System.Collections.Generic;
 
 var builder = WebApplication.CreateBuilder(args);
 
+//builder.WebHost.UseUrls("http://0.0.0.0:5000"); // この行を追加
+
+
+/*
 var kvUri = "https://emailsender.vault.azure.net/";
 
 var client = new SecretClient(new Uri(kvUri), new DefaultAzureCredential());
 KeyVaultSecret sendGridKey = await client.GetSecretAsync("SendGridAPIKey");
+*/
+
+static async Task<string> GetSendGridApiKeyFromAWSSecretsManager()
+{
+    string secretName = "MintSPORTS_secret";
+    string region = "ap-northeast-1";
+
+    IAmazonSecretsManager client = new AmazonSecretsManagerClient(Amazon.RegionEndpoint.GetBySystemName(region));
+    GetSecretValueRequest request = new GetSecretValueRequest
+    {
+        SecretId = secretName,
+        VersionStage = "AWSCURRENT"
+    };
+    GetSecretValueResponse response = await client.GetSecretValueAsync(request);
+
+    // JSONからディクショナリに変換
+    var secrets = JsonSerializer.Deserialize<Dictionary<string, string>>(response.SecretString);
+
+    // SendGridAPIKeyの値を返す
+    return secrets["SendGridAPIKey"];
+}
 
 // Add services to the container.
 string? connectionString = builder.Configuration.GetConnectionString("ApplicationDbContext");
@@ -42,8 +73,13 @@ builder.Services.AddControllersWithViews();
 // Add RazorPages
 builder.Services.AddRazorPages();
 // Add SendGrid EmailSender as a Singleton service
+/*
 builder.Services.AddSingleton<ISuketEmailSender, EmailSender>(i =>
     new EmailSender(sendGridKey.Value));
+*/
+
+var sendGridKey = await GetSendGridApiKeyFromAWSSecretsManager();
+builder.Services.AddSingleton<ISuketEmailSender, EmailSender>(_ => new EmailSender(sendGridKey));
 
 // Add the notification service to the DI container
 builder.Services.AddSingleton<INotificationService, NotificationService>();

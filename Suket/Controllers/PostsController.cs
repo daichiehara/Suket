@@ -6,6 +6,9 @@ using System.Resources;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using Amazon;
+using Amazon.SecretsManager;
+using Amazon.SecretsManager.Model;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using LinqKit;
@@ -21,6 +24,9 @@ using Stripe.Checkout;
 using Suket.Data;
 using Suket.Models;
 using X.PagedList;
+using System.Text.Json;
+using System.Collections.Generic;
+
 
 namespace Suket.Controllers
 {
@@ -43,6 +49,7 @@ namespace Suket.Controllers
             _logger = logger;
         }
 
+        /*
         private static string GetStripeAPIKeyFromAzureKeyVault()
         {
             var keyVaultUrl = "https://stripetestapikey.vault.azure.net/";
@@ -53,6 +60,44 @@ namespace Suket.Controllers
 
             return stripeAPIKeySecret.Value;
         }
+        */
+
+        private static async Task<string> GetStripeAPIKeyFromAWSSecretsManager()
+        {
+            string secretName = "MintSPORTS_secret";  // シークレットの名前を変更
+            string region = "ap-northeast-1";
+
+            IAmazonSecretsManager client = new AmazonSecretsManagerClient(RegionEndpoint.GetBySystemName(region));
+
+            GetSecretValueRequest request = new GetSecretValueRequest
+            {
+                SecretId = secretName,
+                VersionStage = "AWSCURRENT", // VersionStage defaults to AWSCURRENT if unspecified.
+            };
+
+            GetSecretValueResponse response;
+
+            try
+            {
+                response = await client.GetSecretValueAsync(request);
+            }
+            catch (Exception e)
+            {
+                // For a list of the exceptions thrown, see
+                // https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+                throw e;
+            }
+
+            // JSONからStripeAPIKeyを取得
+            var secrets = JsonSerializer.Deserialize<Dictionary<string, string>>(response.SecretString);
+            if (secrets != null && secrets.ContainsKey("StripeAPIKey"))
+            {
+                return secrets["StripeAPIKey"];
+            }
+
+            throw new Exception("StripeAPIKey not found in the secret.");
+        }
+
 
         // GET: Posts
         [HttpGet]
@@ -452,7 +497,7 @@ namespace Suket.Controllers
                                                                .Distinct()
                                                                .ToList();
 
-                    StripeConfiguration.ApiKey = GetStripeAPIKeyFromAzureKeyVault();
+                    StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
                     foreach (var paymentIntentId in uniquePaymentIntentIds)
                     {
                         // Get the amount for this paymentIntentId to calculate the refund amount
@@ -759,7 +804,7 @@ namespace Suket.Controllers
             {
                 _logger.LogInformation("Starting CreateCheckoutSession process.");
 
-                StripeConfiguration.ApiKey = GetStripeAPIKeyFromAzureKeyVault();
+                StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
                 _logger.LogInformation("Stripe API Key retrieved from Azure Key Vault.");
 
                 var post = await _context.Post.FindAsync(postId);
