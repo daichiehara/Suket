@@ -13,8 +13,11 @@ html {
   min-height: 100%;
 }
 
+
 body {
-    margin-bottom: 60px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
     font-family: "Noto Sans JP", "Helvetica Neue", Helvetica, "Segoe UI", "ƒqƒ‰ƒMƒmŠpƒS Pro", "Hiragino Kaku Gothic Pro", ƒƒCƒŠƒI, Meiryo, Osaka, "‚l‚r ‚oƒSƒVƒbƒN", "MS PGothic", sans-serif;
     color: rgb(33, 33, 33);
     letter-spacing: 0.02em;

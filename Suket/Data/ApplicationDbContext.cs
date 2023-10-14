@@ -58,5 +58,7 @@ namespace Suket.Data
 
         public DbSet<Suket.Models.PaymentRecord>? PaymentRecord { get; set; }
 
+        public DbSet<Suket.Models.Contact>? Contact { get; set; }
+
     }
 }

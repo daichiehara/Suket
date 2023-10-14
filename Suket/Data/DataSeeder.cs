@@ -76,7 +76,7 @@ namespace Suket.Data
                 await roleManager.CreateAsync(userRole);
             }
 
-            var adminUser = new UserAccount { UserName = "Admin", Email = "admin@example.com" };
+            var adminUser = new UserAccount { UserName = "Admin", Email = "ehara@roadmint.co.jp" };
             if (await userManager.FindByNameAsync(adminUser.UserName) == null)
             {
                 var adminPassword = await GetAdminPasswordFromAWSSecretsManager();

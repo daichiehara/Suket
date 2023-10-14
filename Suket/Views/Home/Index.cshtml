@@ -1,15 +1,14 @@
 ﻿@model Suket.Models.UserAccount
 
 @{
-    ViewData["Title"] = "Top Page";
+    ViewData["Title"] = "Mint SPORTS 得意なスポーツでお小遣いを稼ごう！";
 }
-<!DOCTYPE html>
-<html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <title>MintSPORTS</title>
+    <link rel="stylesheet" href="~/css/site.css" />
 </head>
 <body>
     <!-- スマホサイズ -->
@@ -21,7 +20,7 @@
             <img src="~/img/handman.png" alt="Image" id="header-image" class="img-fluid p-4 pt-1 pb-1" style="max-width: 95%;">
             <img src="~/img/header_phrase.png" alt="Image" id="header-image" class="img-fluid p-4 pt-0" style="max-width: 80%;">
             <div class="d-grid gap-2 pb-5" style="max-width: 60%; margin: auto;">
-                <a asp-controller="Posts" asp-action="Index" class="btn btn-primary rounded-pill" role="button" style="border-radius: 25px; height: 35px; line-height: 20px; font-size: 25px;">START NOW</a>
+                <a asp-controller="Posts" asp-action="Index" class="btn btn-primary rounded-pill" role="button" style="border-radius: 25px; height: 50px; line-height: 32px; font-size: 25px;">START NOW</a>
             </div>
         </div>
 
@@ -266,4 +265,3 @@
         </div>
     </div>
 </body>
-</html>

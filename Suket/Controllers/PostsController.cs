@@ -101,7 +101,7 @@ namespace Suket.Controllers
 
         // GET: Posts
         [HttpGet]
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 3, Genre? genre = null, Prefecture? prefecture = null, string? searchString = null, DateTimeOffset? fromDateTime = null, bool sortByDateTime = false)
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 30, Genre? genre = null, Prefecture? prefecture = null, string? searchString = null, DateTimeOffset? fromDateTime = null, bool sortByDateTime = false)
         {
             var model = await GetPosts(page, pageSize, genre, prefecture, searchString, fromDateTime, sortByDateTime);
 
@@ -1039,6 +1039,7 @@ namespace Suket.Controllers
 
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Authorize]
         public async Task<IActionResult> CreateReply(int PostId, string Message)
         {

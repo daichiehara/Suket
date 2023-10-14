@@ -4,7 +4,7 @@
 @inject SignInManager<UserAccount> signInManager;
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Post";
 
     var currentUser = await userManager.GetUserAsync(User);
     bool isLoggedIn = signInManager.IsSignedIn(User) && currentUser != null;
@@ -27,6 +27,7 @@
 <head>
     <link rel="stylesheet" href="/css/PostIndex.css" />
     <link rel="stylesheet" href="/css/Pagination.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
 </head>
 
@@ -53,6 +54,7 @@
 
 </style>
 
+<body>
 <div id="loadingOverlay" class="d-none" style="
     position: fixed;
     top: 0;
@@ -77,7 +79,7 @@
 
 
 <div class="d-flex justify-content-between align-items-center">
-    <h3 class="mr-3" style="font-weight:bold">Post</h3>
+    <h3 class="mr-3 text-primary" style="font-weight:bold">Post</h3>
     <button id="filterButton" class="ml-auto d-flex align-items-center">
         <svg style="margin-right:5px;" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="humbleicons hi-adjustments ml-2">
             <path xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 6v-.5M17.5 4v5m0 11v-5.56M6.5 4v2m0 14v-8.44M6.5 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm5.5 8a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm5.5-5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
@@ -346,7 +348,7 @@
         <span class="disabled">Next</span>
     }
 </div>
-
+</body>
 
 
 

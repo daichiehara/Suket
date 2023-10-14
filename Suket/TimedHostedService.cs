@@ -36,25 +36,25 @@ namespace Suket
             // 現在の日時を取得
             var now = DateTime.UtcNow;
 
-            /* 元
+            
             // 次のam12:00の時間を取得
-            var nextMidnight = now.Date.AddHours(24);
+            var nextMidnight = now.Date.AddHours(23);
 
             // 現在から次のam12:00までの残り時間を計算
             var delay = nextMidnight - now;
 
             // タイマーを設定して、残りの時間だけ遅延した後、毎日am12:00に実行されるようにする
-            _timer = new Timer(DoWork, null, delay, TimeSpan.FromHours(24));
-            */
+            _timer = new Timer(DoWork, null, delay, TimeSpan.FromHours(23));
+            
 
             // 次の15分単位の時刻を取得
-            var nextQuarterHour = now.AddMinutes(15 - (now.Minute % 15));
+            //var nextQuarterHour = now.AddMinutes(15 - (now.Minute % 15));
 
             // 現在から次の15分単位の時刻までの残り時間を計算
-            var delay = nextQuarterHour - now;
+            //var delay = nextQuarterHour - now;
 
             // タイマーを設定して、残りの時間だけ遅延した後、毎15分に実行されるようにする
-            _timer = new Timer(DoWork, null, delay, TimeSpan.FromMinutes(15));
+            //_timer = new Timer(DoWork, null, delay, TimeSpan.FromMinutes(15));
 
             return Task.CompletedTask;
         }
@@ -68,15 +68,23 @@ namespace Suket
             StripeConfiguration.ApiKey = GetStripeAPIKeyFromAzureKeyVault();
 
             // 直近24時間の開始と終了時刻を計算
-            //var endTime = DateTime.UtcNow.Date; // 今日のam12:00
-            //var startTime = endTime.AddDays(-1); // 昨日のam12:00
-            var currentMoment = DateTime.UtcNow; // 現在の時間
-            var startTime = currentMoment.AddMinutes(-15); // 15分前
+            var currentMoment = DateTime.UtcNow;
+            var endTime = currentMoment.Date.AddHours(21); // 今日のpm9:00
+
+            if (currentMoment < endTime)
+            {
+                endTime = endTime.AddDays(-1); // 昨日のpm9:00に変更
+            }
+
+            var startTime = endTime.AddDays(-1); // 前日のpm9:00
+
+            //var currentMoment = DateTime.UtcNow; // 現在の時間
+            //var startTime = currentMoment.AddMinutes(-15); // 15分前
 
 
             // 上記の時間帯で開催された投稿を取得
             var postsToProcess = context.Post
-                                        .Where(p => p.Time >= startTime && p.Time < currentMoment)
+                                        .Where(p => p.Time >= startTime && p.Time < endTime)
                                         .ToList();
 
             foreach (var post in postsToProcess)

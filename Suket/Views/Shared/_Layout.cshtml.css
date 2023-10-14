@@ -40,12 +40,21 @@ button.accept-policy {
 }
 
 .footer {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  white-space: nowrap;
-  line-height: 60px;
+    margin-top:auto;
+    bottom: 0;
+    width: 100%;
+    line-height: 60px;
 }
+
+    .footer ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .footer li {
+        margin-bottom: 0px; /* 必要に応じて調整 */
+    }
 
 .fixed-button {
     width: 30px;
@@ -55,7 +64,7 @@ button.accept-policy {
     justify-content: center;
     align-items: center;
     font-size: 24px;
-    margin-left:15px;
+    margin-left: 15px;
 }
 
 .fixed-button-container {

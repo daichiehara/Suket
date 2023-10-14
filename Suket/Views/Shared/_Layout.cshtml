@@ -13,6 +13,16 @@
 }
 
 <!DOCTYPE html>
+<style>
+    .footer a {
+        text-decoration: none;
+        color: #333; 
+    }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+</style>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -42,12 +52,6 @@
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Posts" asp-action="Index">Post</a>
                         </li>
@@ -86,7 +90,28 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2023 - Mint SPORTS - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            <div class="row">
+                <!-- About section -->
+                <div class="col-md-6 col-sm-12">
+                    <br />
+                    from
+                    <a class="navbar-brand ff-title" style="color: #5985E1; margin-left:20px;" href="https://roadmint.co.jp">
+                        <img src="~/img/roadmint_yoko.png" width="150" height="100">
+                    </a>
+                </div>
+
+                <!-- Legal section -->
+                <div class="col-md-6 col-sm-12">
+                    <p style="padding:0;margin:0;"><a asp-controller="Home" asp-action="Tos">利用規約</a></p>
+                    <p style="padding:0;margin:0;"><a asp-controller="Home" asp-action="Tokutei">特定商取引に基づく表記</a></p>
+                    <p style ="padding:0;margin:0;"><a asp-controller="Home" asp-action="Privacy">プライバシーポリシー</a></p>
+                    <p style="padding:0;margin:0;"><a asp-controller="Contacts" asp-action="Create">お問い合わせ</a></p>
+                    
+                </div>
+            </div>
+        </div>
+        <div style="text-align:center;">
+            &copy; 2023 - Mint SPORTS from RoadMint Inc.
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

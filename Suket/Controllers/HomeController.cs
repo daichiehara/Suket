@@ -37,6 +37,15 @@ namespace Suket.Controllers
             return View();
         }
 
+        public IActionResult Tokutei()
+        {
+            return View();
+        }
+
+        public IActionResult Tos()
+        {
+            return View();
+        }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
