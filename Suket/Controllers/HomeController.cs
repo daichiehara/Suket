@@ -47,6 +47,11 @@ namespace Suket.Controllers
             return View();
         }
 
+        public IActionResult Maintenance()
+        {
+            return View();
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
