@@ -1,0 +1,33 @@
+﻿version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      dotnet: 6.0  # ご利用の.NETバージョンに合わせて変更してください
+    commands:
+      - echo Restore started on `date`
+      - dotnet restore
+
+  pre_build:
+    commands:
+      - echo Pre-build started on `date`
+
+  build:
+    commands:
+      - echo Build started on `date`
+      - dotnet build --configuration Release
+
+  post_build:
+    commands:
+      - echo Post-build started on `date`
+      - dotnet publish --configuration Release --output ./publish
+
+artifacts:
+  files:
+    - '**/*'
+  base-directory: 'publish'  # publishコマンドで指定した出力ディレクトリ
+  discard-paths: yes         # 出力にパス情報が不要な場合はこれを使用します
+
+cache:
+  paths:
+    - './packages/**/*'      # 必要に応じてNuGetパッケージのキャッシュを設定します
