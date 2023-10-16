@@ -1,13 +1,42 @@
 ﻿@{
     ViewData["Title"] = "メンテナンス中";
+    Layout = null;
 }
 
-
+<!DOCTYPE html>
+<html lang="ja">
 <head>
-    <link rel="stylesheet" href="~/css/site.css" />
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <title>@ViewData["Title"]</title>
+    <style>
+        .footer {
+            margin-top:auto;
+            bottom: 0;
+            width: 100%;
+            line-height: 60px;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            font-family: "Noto Sans JP", "Helvetica Neue", "Helvetica", "Segoe UI", "ヒラギノ角ゴ Pro", "Hiragino Kaku Gothic Pro", "メイリオ", "Meiryo", "Osaka", "ＭＳ Ｐゴシック", "MS PGothic", "sans-serif";
+            color: rgb(33, 33, 33);
+            letter-spacing: 0.02em;
+            font-size: 16px;
+            height: 100%;
+            padding: 0px;
+        }
+    </style>
 </head>
 <body>
     <div class="container mt-5 text-center">
+        <a class="navbar-brand ff-title" style="color: #5985E1;">
+            <img src="~/img/logo_name.jpg" width="230" height="35">
+        </a>
         <h1 class="display-4">@ViewData["Title"]</h1>
         <p class="lead">現在、ウェブサイトはメンテナンスのため利用できません。お客様には大変ご迷惑をおかけしますが、しばらくしてから再度アクセスしてください。</p>
         <hr class="my-4">
@@ -18,4 +47,16 @@
         </p>
         -->
     </div>
+<footer class="border-top footer text-muted">
+        <div style="text-align:center;">
+            <div>
+                from
+                <a class="navbar-brand ff-title" style="color: #5985E1; margin-left:20px;" href="https://roadmint.co.jp">
+                    <img src="~/img/roadmint_yoko.png" width="150" height="100">
+                </a>
+            </div>
+            &copy; 2023 - Mint SPORTS from RoadMint Inc.
+        </div>
+    </footer>
 </body>
+</html>
