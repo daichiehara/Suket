@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="NewCommentNotificationBody" xml:space="preserve">
-    <value>{0}さん!&lt;br&gt;&lt;br&gt;{1}していた投稿に{2}がコメントをしました。&lt;br&gt;「{3}」&lt;br&gt;&lt;br&gt;詳細は下記URLからお確かめください。&lt;br&gt;https://localhost:7144/Posts/Details/{4}&lt;br&gt;&lt;br&gt;このメールは返信不可です。&lt;br&gt;&lt;br&gt;引き続き本サービスをよろしくお願いいたします。&lt;br&gt;Mint SPORTSサポートチーム</value>
+    <value>{0}さん!&lt;br&gt;&lt;br&gt;{1}していたPostに{2}がコメントをしました。&lt;br&gt;「{3}」&lt;br&gt;&lt;br&gt;詳細は下記URLからお確かめください。&lt;br&gt;https://mintsports.net/Posts/Details/{4}&lt;br&gt;&lt;br&gt;このメールは返信不可です。&lt;br&gt;&lt;br&gt;引き続き本サービスをよろしくお願いいたします。&lt;br&gt;Mint SPORTSサポートチーム</value>
   </data>
   <data name="NewCommentNotificationSubject" xml:space="preserve">
     <value>あなたの投稿に新たなコメントがありました</value>

@@ -16,10 +16,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
 </head>
 
+<h1 class="text-primary">My Post</h1>
 
-<h1>自分の募集</h1>
-
-<div class="fixed-button-container">
+<div class="fixed-button-container d-md-none">
     <a asp-action="Create" class="fixed-button btn btn-primary">
         <i class="fas fa-plus"></i>
     </a>
@@ -29,7 +28,7 @@
 <div class="post-container">
     @foreach (var a in Model)
     {
-        <section class="post">
+        <section class="post card-body">
             @if (a.State == State.End)
             {
                 <div class="end-banner">募集終了</div>
@@ -59,19 +58,107 @@
                     timeDifferenceString = "たった今";
                 }
             }
-            <h5><a asp-action="Details" asp-route-id="@a.PostId">@((a.Title.Length > 17) ? a.Title.Substring(0, 17) + "..." : a.Title)</a></h5>
-            <p><a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName">@(a.UserAccount.NickName ?? a.UserAccount.UserName)</a>・@timeDifferenceString</p>
-            <p>@Html.DisplayFor(modelItem => a.Prefecture)</p>
-            <p>@a.Place</p>
-            <p>@TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")</p>
-            <p>@a.Reward　円</p>
-            <pre style="white-space: pre-wrap;">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre>
-            <p>@Html.DisplayFor(modelItem => a.Genre)</p>
-            <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
-            <p>応募 @(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId]) 件</p>
+            <h5 class="card-title"><a asp-action="Details" asp-route-id="@a.PostId">@((a.Title.Length > 30) ? a.Title.Substring(0, 30) + "..." : a.Title)</a><span style="font-size:16px; color:#6c757d">・@timeDifferenceString</span></h5>
+            <div style="display: flex; align-items: center; margin-bottom:10px;">
+                <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName">
+                @if (!string.IsNullOrWhiteSpace(a.UserAccount.ProfilePictureUrl))
+                {
+                        <img src="@a.UserAccount.ProfilePictureUrl" alt="Profile Picture" class="profile-icon" />
+                }
+                else
+                {
+                        <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/Spork_Logo.jpg" alt="Profile Picture" class="profile-icon" />
+                }
+                </a>
+                    <p class="card-text"><a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName" style="color: inherit; text-decoration: none;">@(a.UserAccount.NickName ?? a.UserAccount.UserName)</a></p>
+            </div>
+            <a asp-action="Details" asp-route-id="@a.PostId" style="color: inherit; text-decoration: none;">
+                <p class="post-icon">
+                    <span class="material-symbols-outlined text-secondary me-2">
+                        location_on
+                    </span>@Html.DisplayFor(modelItem => a.Prefecture)
+                </p>
+                <p class="post-icon">
+                    <span class="material-symbols-outlined text-secondary me-2">
+                        location_on
+                    </span>@a.Place
+                </p>
+                <p class="post-icon">
+                    <span class="material-symbols-outlined text-secondary me-2">
+                        calendar_month
+                    </span>@TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")
+                </p>
+                <p>報酬：@a.Reward　円</p>
+                <pre style="white-space: pre-wrap;">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre>
+                <p class="post-icon">
+                    <span class="material-symbols-outlined text-secondary me-2">
+                        sell
+                    </span>@Html.DisplayFor(modelItem => a.Genre)
+                </p>
+                <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
+            </a>
+            <div style="display:flex; align-items:center;">
+                <p class="mb-0">応募 @(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId]) 件</p>
+                <span class="material-symbols-outlined pointer ms-auto" div data-bs-toggle="modal" data-bs-target="@($"#modal{a.PostId}")">
+                    more_vert
+                </span>
+            </div>
             <!--<button class="subscription-button" data-post-id="@a.PostId">いいね</button>
             <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
             -->
+            <!-- モーダル -->
+            <div class="modal fade" id="@($"modal{a.PostId}")" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalLabel">オプション</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            @if (isLoggedIn && ((currentUser != null) && (a.UserAccountId == currentUser.Id)))
+                            {
+                                var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
+                                var adoptionExists = adoptions.ContainsKey(a.PostId) && adoptions[a.PostId];
+
+
+                                <a asp-action="Subscriber" asp-route-id="@a.PostId">
+                                    <div>
+                                        <span class="material-symbols-outlined text-secondary">
+                                            group
+                                        </span>
+                                        <p>応募者一覧</p>
+                                    </div>
+                                </a>
+                                <br />
+                                @if (a.State == State.Recruiting)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@a.PostId">
+                                        <div>
+                                            <span class="material-symbols-outlined text-secondary">
+                                                edit
+                                            </span>
+                                            <p>Edit</p>
+                                        </div>
+                                    </a>
+                                }
+                                @if (!adoptionExists && a.State == State.Recruiting)
+                                {
+                                    <br />
+                                    <a asp-action="Delete" asp-route-id="@a.PostId">
+                                        <div>
+                                            <span class="material-symbols-outlined text-secondary">
+                                                delete
+                                            </span>
+                                            <p>削除</p>
+                                        </div>
+                                    </a>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--
             @if (isLoggedIn && ((currentUser != null) && (a.UserAccountId == currentUser.Id)))
             {
                 var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
@@ -91,7 +178,7 @@
                     }
                     </p>
             }
-
+            -->
 
         </section>
     }

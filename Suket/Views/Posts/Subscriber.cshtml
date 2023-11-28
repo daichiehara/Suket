@@ -156,7 +156,7 @@ else if (isPastPostTime)
                     });
                 } else {
                     // If there's a reward, proceed with the payment flow
-                    var stripe = Stripe('pk_test_51NOazSCtzLwFlO8auPQ8fbTs7g3XUGuacXM4ww3cHUQhs4n2wEggHp7IJO4LHN7nKufFIrwEa2SGTO3kavmOat4u00FGyurm7u');  // Replace with your Stripe public key
+                    var stripe = Stripe('pk_live_51NOazSCtzLwFlO8aKGf5T9MUhsZ61B6YXYbEfBGJ89WBRWGS9lneiOXIttpzPYPwmdataTumrLyLQO1OhCAQ2nFv00lMQJMfsa');  // Replace with your Stripe public key
                     stripe.redirectToCheckout({
                         sessionId: response.sessionId
                     }).then(function (result) {

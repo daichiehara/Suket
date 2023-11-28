@@ -7,7 +7,7 @@
 
 <h3>収益</h3>
 
-@if (Model.DetailsSubmitted == true && !string.IsNullOrEmpty(Model.StripeAccountId))
+@if (Model.DetailsSubmitted == true)
 {
     <p>ボタンを押すと外部リンク（stripe.com）にアクセスします。</p>
     <button id="viewTransactionHistory" onclick="location.href='@Url.Action("StripeDashboard", "Stripe")'" class="btn btn-success">取引履歴を確認</button>
@@ -15,7 +15,14 @@
 else
 {
     <p>銀行口座を登録して報酬を受け取ってみよう！ボタンを押すと外部リンク（stripe.com）にアクセスします。</p>
-    <button onclick="location.href='@Url.Action("CreateAccount", "Stripe")'" class="btn btn-primary">銀行口座の登録</button>
+    if (string.IsNullOrEmpty(Model.StripeAccountId))
+    {
+        <button onclick="location.href='@Url.Action("CreateAccount", "Stripe")'" class="btn btn-primary">銀行口座の登録</button>
+    }
+    else
+    {
+        <button onclick="location.href='@Url.Action("CreateAccountLink", "Stripe")'" class="btn btn-primary">銀行口座の登録</button>
+    }
 }
 
 <div id="loadingSpinner" class="d-none text-center mt-3">

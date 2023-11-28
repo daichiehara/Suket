@@ -6,21 +6,21 @@
     var currentUser = await userManager.GetUserAsync(User);
 }
 
-<h2>認証</h2>
-<p>投稿者から認証コードを聞いて入力しよう！</p>
+<h2 class="text-primary">参加確認・認証</h2>
+<p>募集者から認証コードを聞いて入力しよう！</p>
 <p>当日参加したことを確認するための認証です。認証されないと報酬は受け取れません。</p>
-<br />
+<hr />
 <p>タイトル： @ViewData["PostTitle"]</p>
 <p>開催場所：@ViewData["PostPlace"]</p>
-<p>投稿者：<a asp-controller="Users" asp-action="Profile" asp-route-UserName=@ViewData["PostUserName"]>@ViewData["PostDisplayName"]</a></p>
-
+<p>募集者：<a asp-controller="Users" asp-action="Profile" asp-route-UserName=@ViewData["PostUserName"]>@ViewData["PostDisplayName"]</a></p>
+<hr />
 <form asp-action="VerifyAttendance" asp-controller="RollCalls" method="post">
     <input type="hidden" asp-for="@Model.PostId" value="@ViewData["PostId"]" />
     <input type="hidden" asp-for="@Model.UserAccountId" value="@currentUser.Id" />
 
     <div class="form-group">
         <label asp-for="CertificationCode"></label>
-        <input type="number" asp-for="CertificationCode" class="form-control" required />
+        <input type="number" asp-for="CertificationCode" class="form-control" placeholder="数字4桁を入力..." required />
         <span asp-validation-for="CertificationCode" class="text-danger"></span>
     </div>
 

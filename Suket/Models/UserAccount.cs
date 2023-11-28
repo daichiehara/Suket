@@ -35,6 +35,9 @@ namespace Suket.Models
         [Display(Name = "性別")]
         public Sex SelectSex { get; set; }
 
+        [Display(Name = "Icon")]
+        public string? ProfilePictureUrl { get; set; }
+
         [Display(Name = "StripeId")]
         public string? StripeAccountId { get; set; }
 

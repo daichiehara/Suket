@@ -12,11 +12,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" Version="3.7.300.4" />
     <PackageReference Include="AWSSDK.SecretsManager" Version="3.7.201.28" />
     <PackageReference Include="Azure.Identity" Version="1.9.0" />
     <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.5.0" />
     <PackageReference Include="DateOnlyTimeOnly.AspNet" Version="2.1.1" />
     <PackageReference Include="LinqKit" Version="1.2.4" />
+    <PackageReference Include="Magick.NET-Q8-x64" Version="13.4.0" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="6.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.15" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="6.0.15" />
@@ -44,6 +46,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Resources\AdoptionEmail.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AdoptionEmail.resx</DependentUpon>
+    </Compile>
     <Compile Update="Resources\ContactEmail.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -57,6 +64,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Update="Resources\AdoptionEmail.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>AdoptionEmail.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Update="Resources\ContactEmail.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>ContactEmail.Designer.cs</LastGenOutput>

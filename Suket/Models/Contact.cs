@@ -12,6 +12,8 @@ namespace Suket.Models
         public string Message { get; set; }
 
         public string? Name { get; set; }
+
+        [Required]
         public string? Email { get; set; }
 
         public DateTimeOffset Created { get; set; }

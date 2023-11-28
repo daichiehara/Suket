@@ -381,7 +381,15 @@ namespace Suket.Controllers
             
             if (ModelState.IsValid)
             {
-                post.Time = post.Time.ToUniversalTime();
+                // 日本のタイムゾーンを取得
+                TimeZoneInfo japanTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+
+                // post.TimeがDateTimeOffset型である場合、DateTimeに変換
+                DateTime localDateTime = post.Time.DateTime;
+
+                // ユーザーが入力した日本時間（ローカルタイム）をUTCに変換
+                post.Time = TimeZoneInfo.ConvertTimeToUtc(localDateTime, japanTimeZone);
+
                 post.Created = DateTime.UtcNow;
                 
 
@@ -484,7 +492,14 @@ namespace Suket.Controllers
 
             if (ModelState.IsValid)
             {
-                post.Time = post.Time.ToUniversalTime();
+                // 日本のタイムゾーンを取得
+                TimeZoneInfo japanTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+
+                // post.TimeがDateTimeOffset型である場合、DateTimeに変換
+                DateTime localDateTime = post.Time.DateTime;
+
+                // ユーザーが入力した日本時間（ローカルタイム）をUTCに変換
+                post.Time = TimeZoneInfo.ConvertTimeToUtc(localDateTime, japanTimeZone);
 
                 // StateがCancelに変更されたかどうかを確認
                 if (originalPost.State != State.Cancel && post.State == State.Cancel)
@@ -766,6 +781,22 @@ namespace Suket.Controllers
                     };
                     _context.Adoption.Add(adoption);
                     isAdopted = true;  // A new Adoption record is created
+
+                    var user = await _context.Users.FindAsync(userId);
+                    var emailAddress = user?.Email;  // Ensure the user was found before accessing the Email property
+
+                    var post = await _context.Post.FindAsync(postId);
+
+                    //var selectName = contact.UserAccount.NickName ?? contact.UserAccount.UserName;
+                    string postTime = TimeZoneInfo.ConvertTimeFromUtc(post.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm");
+                    // Get the email subject and body from the resource file
+                    var subject = Resources.AdoptionEmail.Subject;
+                    var body = string.Format(Resources.AdoptionEmail.Body, post.Title, post.Place, postTime, postId);
+                    // Send a notification to the poster
+                    if (!string.IsNullOrEmpty(emailAddress))
+                    {
+                        await _emailSender.SendEmailAsync(emailAddress, subject, body);
+                    }
                 }
                 else
                 {
@@ -850,8 +881,8 @@ namespace Suket.Controllers
                             Quantity = userIds.Count,
                         },
                     },
-                    SuccessUrl = $"https://localhost:7144/Payment/Success?postId={postId}",
-                    CancelUrl = $"https://localhost:7144/Posts/Subscriber/{post.PostId}",
+                    SuccessUrl = $"https://mintsports.net/Payment/Success?postId={postId}",
+                    CancelUrl = $"https://mintsports.net/Posts/Subscriber/{post.PostId}",
                     Metadata = new Dictionary<string, string>
                     {
                         {"post_id", postId.ToString()},

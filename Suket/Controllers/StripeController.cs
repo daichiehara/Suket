@@ -87,8 +87,12 @@ namespace Suket.Controllers
                 return NotFound();
             }
 
-            var hasStripeAccount = !string.IsNullOrWhiteSpace(user.StripeAccountId) && user.DetailsSubmitted;
-            return Json(new { hasStripeAccount = hasStripeAccount });
+            var stripeAccountStatus = new
+            {
+                HasStripeAccountId = !string.IsNullOrWhiteSpace(user.StripeAccountId),
+                DetailsSubmitted = user.DetailsSubmitted
+            };
+            return Json(stripeAccountStatus);
         }
 
 
@@ -104,15 +108,7 @@ namespace Suket.Controllers
                 return NotFound();
             }
 
-            string ProfileUrl = "";
-            if (user.NickName != null)
-            {
-                ProfileUrl = $"https://localhost:7144/Users/{user.NickName}";
-            }
-            else
-            {
-                ProfileUrl = $"https://localhost:7144/Users/{user.UserName}";
-            }
+            string ProfileUrl = $"https://mintsports.net/Users/{user.UserName}";
 
             var options = new AccountCreateOptions
             {
@@ -131,7 +127,7 @@ namespace Suket.Controllers
                     },
                 },
                 BusinessType = "individual",
-                //BusinessProfile = new AccountBusinessProfileOptions { Url = ProfileUrl },
+                BusinessProfile = new AccountBusinessProfileOptions { Url = ProfileUrl },
             };
             var service = new AccountService();
             var account = service.Create(options);
@@ -160,8 +156,8 @@ namespace Suket.Controllers
             var options = new AccountLinkCreateOptions
             {
                 Account = user.StripeAccountId,
-                RefreshUrl = "https://localhost:7144/Stripe/CreateAccountLink",
-                ReturnUrl = "https://localhost:7144/Identity/Account/Manage/Earnings",
+                RefreshUrl = "https://mintsports.net/Stripe/CreateAccountLink",
+                ReturnUrl = "https://mintsports.net/Home/SuccessCreateStripeAccount",
                 Type = "account_onboarding",
             };
             var service = new AccountLinkService();
@@ -202,7 +198,8 @@ namespace Suket.Controllers
             var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
 
             // Verify the webhook signature (for security)
-            const string endpointSecret = "whsec_f8cd12c25d871ad7eb78bc7549def9b8faac91b44837832b2a8cc1403f4ce01b";
+            //const string endpointSecret = "whsec_f8cd12c25d871ad7eb78bc7549def9b8faac91b44837832b2a8cc1403f4ce01b";
+            const string endpointSecret = "whsec_JHw9OGvxbHQxc0HyVxMpC1kmOkC9p0W5";
             try
             {
                 var stripeEvent = EventUtility.ConstructEvent(json,

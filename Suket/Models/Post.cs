@@ -13,6 +13,20 @@ namespace Suket.Models
         Baseball = 1,
         [Display(Name = "サッカー")]
         Soccer = 2,
+        [Display(Name = "バスケットボール")]
+        Basketball = 3,
+        [Display(Name = "バレーボール")]
+        Volleyball = 4,
+        [Display(Name = "ソフトボール")]
+        Softball = 5,
+        [Display(Name = "フットサル")]
+        Futsal = 6,
+        [Display(Name = "ボウリング")]
+        Bowling = 7,
+        [Display(Name = "ゴルフ")]
+        Golf = 8,
+        [Display(Name = "テニス")]
+        Tennis = 9,
         [Display(Name = "その他")]
         Q = 99
     }

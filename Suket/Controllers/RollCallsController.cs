@@ -200,6 +200,7 @@ namespace Suket.Controllers
 
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [Authorize]
         public async Task<IActionResult> VerifyAttendance(int postId, string userAccountId, int certificationCode)
         {

@@ -6,10 +6,13 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using Amazon.S3.Model;
+using Amazon.S3;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Suket.Models;
+using ImageMagick;
 
 namespace Suket.Areas.Identity.Pages.Account.Manage
 {
@@ -79,6 +82,12 @@ namespace Suket.Areas.Identity.Pages.Account.Manage
 
             [Display(Name = "生年月日")]
             public DateOnly Birthday { get; set; }
+
+            [Display(Name = "プロフィール画像")]
+            public IFormFile ProfileImage { get; set; }
+
+            [Display(Name = "トリミングされたプロフィール画像")]
+            public string CroppedImage { get; set; }
         }
 
         private async Task LoadAsync(UserAccount user)
@@ -96,6 +105,7 @@ namespace Suket.Areas.Identity.Pages.Account.Manage
 
             Input = new InputModel
             {
+                
                 UserName= userName,
                 NickName= nickName,
                 PhoneNumber = phoneNumber,
@@ -176,9 +186,136 @@ namespace Suket.Areas.Identity.Pages.Account.Manage
                 await _userManager.UpdateAsync(user);
             }
 
+            /*
+            if (Input.ProfileImage != null && Input.ProfileImage.Length > 0)
+            {
+                // Amazon S3 などのサービスを使用してファイルをアップロード
+                var imageUrl = await UploadFileToS3(Input.ProfileImage);
+                user.ProfilePictureUrl = imageUrl; // ユーザーのプロフィール画像URLを更新
+                await _userManager.UpdateAsync(user);
+            }
+            */
+
+            if (!string.IsNullOrWhiteSpace(Input.CroppedImage))
+            {
+                var base64Data = Input.CroppedImage.Split(',')[1];
+                var imageBytes = Convert.FromBase64String(base64Data);
+
+                using var ms = new MemoryStream(imageBytes);
+                var imageFormat = GetImageFormat(ms);
+
+                // 古い画像を削除
+                await DeleteFileFromS3(user.ProfilePictureUrl);
+
+                if (imageFormat == MagickFormat.Heic)
+                {
+                    // HEIC画像の場合はJPEGに変換
+                    var imageUrl = await ConvertHeicToJpegAsync(ms);
+                    user.ProfilePictureUrl = imageUrl;
+                }
+                else
+                {
+                    // その他の画像形式の場合はそのままアップロード
+                    var contentType = GetContentTypeFromFormat(imageFormat);
+                    var imageUrl = await UploadFileToS3(ms, contentType);
+                    user.ProfilePictureUrl = imageUrl;
+                }
+                await _userManager.UpdateAsync(user);
+            }
+
             await _signInManager.RefreshSignInAsync(user);
             StatusMessage = "Your profile has been updated";
             return RedirectToPage();
         }
+
+        private async Task<string> UploadFileToS3(Stream stream, string contentType)
+        {
+            var bucketName = "mintsports-profile-img";
+
+            // ファイル名の生成 (Content-Typeに応じた拡張子を使用)
+            var fileExtension = GetFileExtensionFromContentType(contentType);
+            var fileName = Guid.NewGuid().ToString() + fileExtension;
+
+            var uploadRequest = new PutObjectRequest
+            {
+                BucketName = bucketName,
+                Key = fileName,
+                InputStream = stream,
+                ContentType = contentType
+            };
+            await new AmazonS3Client().PutObjectAsync(uploadRequest);
+
+            return $"https://{bucketName}.s3.amazonaws.com/{fileName}";
+        }
+
+        private string GetFileExtensionFromContentType(string contentType)
+        {
+            return contentType switch
+            {
+                "image/jpeg" => ".jpg",
+                "image/png" => ".png",
+                "image/gif" => ".gif",
+                // 他のContent-Typeに対する拡張子
+                _ => ""
+            };
+        }
+
+
+        private MagickFormat GetImageFormat(Stream stream)
+        {
+            using var image = new MagickImage(stream);
+            return image.Format;
+        }
+
+        private string GetContentTypeFromFormat(MagickFormat format)
+        {
+            return format switch
+            {
+                MagickFormat.Jpeg => "image/jpeg",
+                MagickFormat.Png => "image/png",
+                MagickFormat.Gif => "image/gif",
+                // 他のフォーマットに対するContent-Type
+                _ => "application/octet-stream"
+            };
+        }
+
+        private async Task<string> ConvertHeicToJpegAsync(Stream stream)
+        {
+            using var image = new MagickImage(stream)
+            {
+                Format = MagickFormat.Jpeg
+            };
+
+            await using var outputStream = new MemoryStream();
+            image.Write(outputStream);
+            outputStream.Position = 0;
+
+            var imageUrl = await UploadFileToS3(outputStream, "image/jpeg");
+            return imageUrl;
+        }
+
+        // 古い画像を削除するメソッド
+        private async Task<bool> DeleteFileFromS3(string fileUrl)
+        {
+            try
+            {
+                var uri = new Uri(fileUrl);
+                var fileName = Path.GetFileName(uri.LocalPath);
+                var deleteObjectRequest = new DeleteObjectRequest
+                {
+                    BucketName = "mintsports-profile-img",
+                    Key = fileName
+                };
+
+                await new AmazonS3Client().DeleteObjectAsync(deleteObjectRequest);
+                return true;
+            }
+            catch
+            {
+                // エラーロギングなど
+                return false;
+            }
+        }
+
     }
 }

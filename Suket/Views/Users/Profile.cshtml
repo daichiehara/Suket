@@ -2,14 +2,35 @@
 @using Suket.Extensions
 
 @{
+    ViewData["Title"] = "User Profile";
+
     var displayname = Model.NickName ?? Model.UserName;
     var today = DateOnly.FromDateTime(DateTime.Today);
     var age = today.Year - Model.Birthday.Year;
     if (Model.Birthday.AddDays(age) > today) age--;
 }
+<head>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <style>
+        .header-container {
+            display: flex;
+            align-items: center; /* 縦方向の中央揃え */
+            justify-content: flex-start; /* アイテムを左側に寄せる */
+        }
 
-<h1>@Model.UserName のプロフィール</h1>
-
+            .header-container .back-arrow {
+                margin-right: 20px; /* アイコンとテキストの間に少しスペースを設ける */
+            }
+    </style>
+</head>
+<div class="header-container">
+    <span class="back-arrow btn-primary" onclick="history.back()" title="back">
+        <span class="material-symbols-outlined">
+            arrow_back
+        </span>
+    </span>
+<h1 class="text-primary">@Model.UserName のプロフィール</h1>
+</div>
 <p><strong>表示名:</strong> @displayname</p>
 <p><strong>年齢:</strong> @age</p>
 <p><strong>性別:</strong> @Model.SelectSex.GetDisplayName()</p>

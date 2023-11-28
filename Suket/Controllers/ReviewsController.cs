@@ -199,11 +199,13 @@ namespace Suket.Controllers
                             .Include(p => p.Adoptions)
                             .ThenInclude(a => a.UserAccount)
                             .Include(p => p.RollCalls)  // RollCall をロード
-                            .Where(p => p.Time < utcTime && p.RollCalls.Any(r => !p.Reviews.Any(rv => rv.ReviewedId == r.UserAccountId)))  // RollCall を基にレビューの条件を変更
+                            //.Where(p => p.Time < utcTime && p.RollCalls.Any(r => !p.Reviews.Any(rv => rv.ReviewedId == r.UserAccountId)))  // RollCall を基にレビューの条件を変更
+                            .Where(p => p.Time < utcTime)
                             .ToList();
 
             var reviewablePostsList = new List<ReviewablePostsViewModel>();
 
+            
             foreach (var post in reviewablePosts)
             {
                 if (post.UserAccountId == currentUserId)
@@ -224,7 +226,25 @@ namespace Suket.Controllers
                     }
                 }
             }
-
+            
+            /*
+            foreach (var post in reviewablePosts)
+            {
+                if (post.UserAccountId == currentUserId)
+                {
+                    foreach (var rollCall in post.RollCalls)
+                    {
+                        // 既にWhere句でフィルタリングしているため、ここでのチェックは不要
+                        reviewablePostsList.Add(new ReviewablePostsViewModel { Post = post, UserToReview = rollCall.UserAccount });
+                    }
+                }
+                else if (post.RollCalls.Any(r => r.UserAccountId == currentUserId))
+                {
+                    // こちらも同様に、追加のチェックは不要
+                    reviewablePostsList.Add(new ReviewablePostsViewModel { Post = post, UserToReview = post.UserAccount });
+                }
+            }
+            */
             return View(reviewablePostsList);
         }
 

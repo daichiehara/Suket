@@ -1,18 +1,142 @@
 ﻿@page
 @model IndexModel
+@using Microsoft.AspNetCore.Identity;
+@using Suket.Models;
+@inject UserManager<UserAccount> userManager;
 @{
     ViewData["Title"] = "Profile";
     ViewData["ActivePage"] = ManageNavPages.Index;
+    var user = await userManager.GetUserAsync(User);
 }
 <head>
     <link rel="stylesheet" href="/css/ManageIndex.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.css" integrity="sha512-bs9fAcCAeaDfA4A+NiShWR886eClUcBtqhipoY5DM60Y1V3BbVQlabthUBal5bq8Z8nnxxiyb1wfGX2n76N1Mw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js" integrity="sha512-9KkIqdfN7ipEW6B6k+Aq20PV31bjODg4AA52W+tYtAE0jE0kMx49bjJ3FgvS56wzmyfMUHbQ4Km2b7l9+Y/+Eg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        .profile-icon {
+            width: 100px; /* アイコンの幅 */
+            height: 100px; /* アイコンの高さ */
+            border-radius: 50%; /* 丸みを出すために幅と高さの半分 */
+            object-fit: cover; /* 画像を枠に合わせて切り取る */
+        }
+
+        .profile-icon:hover {
+            filter: brightness(75%);
+        }
+
+
+        /* 下記は円形にするなら必須です。 */
+        .cropper-view-box,
+        .cropper-face {
+            border-radius: 50%;
+        }
+        /* 下記はできれば必要なスタイルかと思います。（厳密にはスタイルなど必要ありませんが、最低現のスタイルとしてという意味です。） */
+        .cropper-container {
+            width: 100%;
+        }
+
+        /* Ensure the modal body is taking up full space */
+        .modal-body {
+            display: flex;
+            justify-content: center; /* Center the cropper container horizontally */
+            align-items: center; /* Center the cropper container vertically */
+        }
+
+        /* Ensure the image takes up the necessary space */
+        .cropper-area {
+            max-width: 100%; /* Limit width to the container size */
+            display: block; /* Block display to take up full width */
+            /* Remove max-height if it's not needed, or set to a reasonable value */
+        }
+
+        .profile-image-container {
+            position: relative;
+            display: inline-block; /* または他のレイアウトに適した方法 */
+            margin: auto; /* 要素を中央に配置 */
+        }
+
+        .edit-icon {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background-color: rgba(255, 255, 255, 0.7); /* 半透明の背景 */
+            border-radius: 50%;
+            padding: 5px;
+            cursor: pointer;
+        }
+
+        /* ローディングスピナーとオーバーレイのスタイル */
+        .loading-overlay{
+            display:none;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1050;
+        }
+        
+        #spinner-border {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1051;
+        }
+        
+
+    </style>
 </head>
 <h3>@ViewData["Title"]</h3>
 <partial name="_StatusMessage" for="StatusMessage" />
 <div class="row">
     <div class="col-md-6">
-        <form id="profile-form" method="post">
+        <!-- プロフィール画像 -->
+        <div class="text-center">
+        <div class="profile-image-container">
+            @if (!string.IsNullOrWhiteSpace(user.ProfilePictureUrl))
+            {
+                <img src="@user.ProfilePictureUrl" alt="Profile Picture" class="profile-icon m-2" id="profileImage" />
+            }
+            else
+            {
+                <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/Spork_Logo.jpg" alt="Profile Picture" class="profile-icon m-2" id="profileImage" />
+            }
+            <span class="material-symbols-outlined edit-icon">
+                edit
+            </span>
+        </div>
+        </div>
+        <!-- 隠れているファイル入力 -->
+        <input type="file" id="inputImage" style="display: none;" value="" />
+
+        <!-- トリミングモーダル -->
+        <div class="modal fade" id="modalCropper" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <!-- modal-xlを追加 -->
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <!-- トリミング用の画像を表示するコンテナ -->
+                        <div class="cropper-area">
+                            <img id="image" style="max-width: 100%; max-height: 600px;"> <!-- 最大高さを増やす -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="crop">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <form id="profile-form" method="post" enctype="multipart/form-data">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input asp-for="Input.CroppedImage" type="hidden" id="croppedImage" value="">
             <div class="form-floating">
                 <input asp-for="Input.UserName" class="form-control" />
                 <label asp-for="Input.UserName" class="form-label"></label>
@@ -64,6 +188,94 @@
     </div>
 </div>
 
+<!-- ローディングオーバーレイ -->
+<div class="loading-overlay">
+    <div class="overlay"></div>
+    <div id="spinner-border">
+        <div class="spinner-border text-primary" role="status" style="width:3rem; height:3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(function () {
+            var $image = $('#image');
+            var cropper;
+
+            // プロフィール画像クリックでファイル入力をトリガー
+            $('#profileImage').click(function () {
+                $('#inputImage').click();
+            });
+
+            // モーダルが閉じられたときのイベント
+            $('#modalCropper').on('hidden.bs.modal', function () {
+                $('#inputImage').val(''); // ファイル入力をクリア
+            });
+
+            // 画像選択時にモーダルを開く
+            $('#inputImage').change(function (event) {
+                var files = event.target.files;
+
+                if (files && files.length) {
+                    var file = files[0];
+                    var reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        $image.attr('src', e.target.result);
+                        if (cropper) {
+                            cropper.destroy();
+                        }
+
+                        // Cropper.jsの初期化
+                        cropper = new Cropper($image[0], {
+                            aspectRatio: 1,
+                            viewMode: 1,
+                            minContainerWidth: 300, // トリミングコンテナの最小幅を増やす
+                            minContainerHeight: 380 // トリミングコンテナの最小高さを増やす
+                        });
+
+                        $('#modalCropper').modal('show');
+                    };
+
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            $('#crop').click(function () {
+                var croppedCanvas = cropper.getCroppedCanvas();
+                var croppedImageDataURL = croppedCanvas.toDataURL();
+
+                // トリミングした画像データを隠しフィールドにセット
+                $('#croppedImage').val(croppedImageDataURL);
+
+                // ローディングスピナーを表示
+                $('.loading-overlay').show();
+
+                // プレビューとして画像を表示
+                $('#profileImage').attr('src', croppedImageDataURL);
+
+                // モーダルを閉じる
+                $('#modalCropper').modal('hide');
+
+                // トリミング処理が完了したのを確認してからフォームを送信
+                setTimeout(function () {
+                    $('#profile-form').submit();
+                }, 500); // 500ミリ秒の遅延を設けていますが、必要に応じて調整してください
+                
+               console.log(croppedImageDataURL);
+            });
+
+            // フォーム送信後、ローディングスピナーを非表示にする
+            /*
+            $('#profile-form').submit(function () {
+                $('.loading-overlay').hide();
+            });
+            */
+        });
+        
+    </script>
 }

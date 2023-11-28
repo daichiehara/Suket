@@ -7,7 +7,7 @@
 @inject SignInManager<UserAccount> signInManager;
 
 @{
-    ViewData["Title"] = "My応募";
+    ViewData["Title"] = "My List";
     var currentUser = await userManager.GetUserAsync(User);
     bool isLoggedIn = signInManager.IsSignedIn(User) && currentUser != null;
 }
@@ -15,12 +15,11 @@
     <link rel="stylesheet" href="/css/PostIndex.css" />
 </head>
 
+<h1 class="text-primary">応募したPost</h1>
 
-<h1>応募した投稿</h1>
 
-
-<div>
-採用された投稿のみ
+<div style="display:flex; align-items:center; margin-bottom:10px;">
+    <p class="mb-0 me-2">採用されたPostのみ</p>
     <label class="switch">
         <input type="checkbox" id="showAdoptedToggle">
         <span class="slider round"></span>
@@ -60,20 +59,48 @@
                                 timeDifferenceString = "たった今";
                             }
                         }
-                        <h5 class="card-title"><a asp-action="Details" asp-route-id="@a.PostId">@((a.Title.Length > 17) ? a.Title.Substring(0, 17) + "..." : a.Title)</a></h5>
-                        <p class="card-text"><a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName">@(a.UserAccount.NickName ?? a.UserAccount.UserName)</a>・@timeDifferenceString</p>
-                        <p class="card-text">@Html.DisplayFor(modelItem => a.Prefecture)</p>
-                        <p class="card-text">@a.Place</p>
-                        <p class="card-text">@TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")</p>
-                        <p class="card-text">@a.Reward　円</p>
-                        <pre style="white-space: pre-wrap;" class="card-text">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre> 
-                        <p class="card-text">@Html.DisplayFor(modelItem => a.Genre)</p>
+                        <h5 class="card-title"><a asp-action="Details" asp-route-id="@a.PostId">@((a.Title.Length > 30) ? a.Title.Substring(0, 30) + "..." : a.Title)</a><span style="font-size:16px; color:#6c757d">・@timeDifferenceString</span></h5>
+                        <div style="display: flex; align-items: center; margin-bottom:10px;">
+                            <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName">
+                                @if (!string.IsNullOrWhiteSpace(a.UserAccount.ProfilePictureUrl))
+                                {
+                                    <img src="@a.UserAccount.ProfilePictureUrl" alt="Profile Picture" class="profile-icon" />
+                                }
+                                else
+                                {
+                                    <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/Spork_Logo.jpg" alt="Profile Picture" class="profile-icon" />
+                                }
+                            </a>
+                            <p class="card-text"><a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName" style="color: inherit; text-decoration: none;">@(a.UserAccount.NickName ?? a.UserAccount.UserName)</a></p>
+                        </div>
+                        <a asp-action="Details" asp-route-id="@a.PostId" style="color: inherit; text-decoration: none;">
+                            <p class="card-text post-icon">
+                                <span class="material-symbols-outlined text-secondary me-2">
+                                    location_on
+                                </span>@Html.DisplayFor(modelItem => a.Prefecture)
+                            </p>
+                            <p class="card-text post-icon">
+                                <span class="material-symbols-outlined text-secondary me-2">
+                                    location_on
+                                </span>@a.Place
+                            </p>
+                            <p class="card-text post-icon">
+                                <span class="material-symbols-outlined text-secondary me-2">
+                                        calendar_month
+                                </span>@TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")</p>
+                            <p class="card-text">報酬：@a.Reward　円</p>
+                            <pre style="white-space: pre-wrap;" class="card-text">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre> 
+                            <p class="card-text post-icon">
+                                <span class="material-symbols-outlined text-secondary me-2">
+                                    sell
+                                </span>@Html.DisplayFor(modelItem => a.Genre)
+                            </p>
 
-                        @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
-                        {
-                            <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
-                        }
-                        
+                            @if (isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id))
+                            {
+                                <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
+                            }
+                        </a>
                         @{
                             var userAdoptionPosts = ViewData["UserAdoptionPosts"] as Dictionary<int, bool>;
                         }
@@ -86,7 +113,7 @@
                             @if (userAdoptionPosts != null && userAdoptionPosts.ContainsKey(a.PostId))
                             {
                                 <div style="margin-left: auto;">
-                                    <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId" class="btn btn-success">出席確認</a>
+                                    <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId" class="btn btn-success">参加確認</a>
                                 </div>
                             }
                         </div>

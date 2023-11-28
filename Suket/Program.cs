@@ -13,6 +13,7 @@ using Amazon.SecretsManager.Model;
 using Stripe;
 using System.Text.Json;
 using System.Collections.Generic;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,12 +89,40 @@ builder.Services.AddHostedService<UpdatePostStatusBackgroundService>();
 
 builder.Services.AddHostedService<TimedHostedService>();
 
+// HTTPSリダイレクションの設定を追加
+/*
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Services.AddHttpsRedirection(options =>
+    {
+        options.RedirectStatusCode = (int)HttpStatusCode.PermanentRedirect;
+        options.HttpsPort = 443;
+    });
+}
+*/
 
+// HSTSの設定を追加
+/*
+builder.Services.AddHsts(options =>
+{
+    options.Preload = true;
+    options.IncludeSubDomains = true;
+    options.MaxAge = TimeSpan.FromDays(365);
+    // options.ExcludedHosts.Add("example.com");
+    // options.ExcludedHosts.Add("www.example.com");
+});
+*/
 
 //builder.Services.Configure<DataProtectionTokenProviderOptions>(opts => opts.TokenLifespan = TimeSpan.FromHours(10));
 
 
 var app = builder.Build();
+
+// 本番環境では、HSTSを使用
+//app.UseHsts();
+
+// HTTPSリダイレクトを使用
+//app.UseHttpsRedirection();
 
 // Add the seed data
 using (var scope = app.Services.CreateScope())
@@ -160,7 +189,7 @@ app.MapControllerRoute(
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Maintenance}/{id?}");
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.MapRazorPages();
 

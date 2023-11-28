@@ -1,0 +1,243 @@
+﻿@{
+    ViewData["Title"] = "Guide";
+}
+<head>
+    <link rel="stylesheet" href="~/css/site.css" />
+
+    <style>
+        h1{
+            text-align:center;
+            font-weight:bold;
+        }
+        h2{
+            text-align:center;
+            font-weight:bold;
+        }
+        h3{
+            font-weight:bold;
+        }
+
+        .toc-002 {
+            margin-bottom: 30px;
+            border: 2px solid #2589d0;
+            border-radius: 3px;
+        }
+
+            .toc-002 div {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 0;
+                padding: 10px 0;
+                background-color: #2589d0;
+                color: #fff;
+                
+            }
+
+                .toc-002 div::before {
+                    display: inline-block;
+                    width: 1em;
+                    height: 1em;
+                    margin-right: 5px;
+                    background-image: url('data:image/svg+xml;charset=utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22%23fff%22%3E%3Cpath%20d%3D%22M3.8%2017.2h-3c-.5%200-.8.4-.8.8v3c0%20.4.3.8.8.8h3c.4%200%20.8-.3.8-.8v-3c-.1-.4-.4-.8-.8-.8zm0-15h-3c-.5%200-.8.4-.8.8v3c0%20.4.3.8.8.8h3c.4%200%20.8-.3.8-.8V3c-.1-.4-.4-.8-.8-.8zm0%207.6h-3c-.5%200-.8.3-.8.7v3c0%20.4.3.8.8.8h3c.4%200%20.8-.3.8-.8v-3c-.1-.4-.4-.7-.8-.7zM23.2%2018h-15c-.4%200-.8.3-.8.8v1.5c0%20.4.3.8.8.8h15c.4%200%20.8-.3.8-.8v-1.5c0-.5-.3-.8-.8-.8zm0-15h-15c-.4%200-.7.3-.7.8v1.5c0%20.4.3.7.7.7h15c.5%200%20.8-.3.8-.8V3.8c0-.5-.3-.8-.8-.8zm0%207.5h-15c-.4%200-.8.3-.8.8v1.5c0%20.4.3.8.8.8h15c.4%200%20.8-.3.8-.8v-1.5c0-.5-.3-.8-.8-.8z%22%2F%3E%3C%2Fsvg%3E');
+                    content: '';
+                }
+
+            .toc-002 ol {
+                list-style-type: decimal;
+                margin: 0;
+                overflow: hidden;
+            }
+
+            .toc-002 > ol {
+                padding: 1em 1em 1em 3em;
+            }
+
+            .toc-002 ol ol {
+                margin-top: 5px;
+                padding-left: 1.1em;
+            }
+
+            .toc-002 li {
+                padding: 5px 0;
+                font-weight: 600;
+            }
+
+            .toc-002 ol ol li {
+                font-weight: 500;
+                font-size: .9em;
+            }
+
+            .toc-002 a {
+                color: #333;
+                text-decoration: none;
+            }
+
+        .guide-step{
+            margin-bottom:14px;
+        }
+
+        .guide-section1{
+            background-color:azure;
+            padding:20px;
+            width:100%;
+        }
+
+        .guide-section2{
+            background-color:floralwhite;
+            padding:20px;
+            width:100%;
+        }
+
+        .img-center{
+            text-align:center;
+        }
+
+        .img-center img{
+            margin:14px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 class="text-primary p-3">使い方ガイド</h1>
+    <div class="toc-002">
+        <div>目次</div>
+        <ol>
+            <li>
+                <a href="#chapter0">応募者の方</a>
+                <ol class="child_ol">
+                    <li><a href="#chapter1">応募する</a></li>
+                    <li><a href="#chapter2">募集者とやり取りする</a></li>
+                    <li><a href="#chapter3">開催日当日の流れ</a></li>
+                    <li><a href="#chapter4">レビュー</a></li>
+                </ol>
+            </li>
+            <li>
+                <a href="#chapter00">募集者の方</a>
+                <ol class="child_ol">
+                    <li><a href="#chapter5">メンバーを募集する</a></li>
+                    <li><a href="#chapter6">メンバーを採用する</a></li>
+                    <li><a href="#chapter7">採用者とやり取りする</a></li>
+                    <li><a href="#chapter8">開催日当日の流れ</a></li>
+                    <li><a href="#chapter9">レビュー</a></li>
+                </ol>
+            </li>
+        </ol>
+    </div>
+
+    <div id="chapter0" class="guide-section1">
+        <h2 class="my-3 text-primary">応募者の方</h2>
+
+        <div id="chapter1" class="guide-step">
+            <h3>1. 応募する</h3>
+            <p>
+                興味のあるPost(募集投稿)に応募ボタンを押す。応募するとボタンが赤くなります。<br />
+                採用されるとメールが届きます。
+            </p>
+            <div class="img-center">
+                <img src="~/img/Mintsports-img/Join.png" height="400px" width="200px" />
+            </div>
+        </div>
+
+        <div id="chapter2" class="guide-step">
+            <h3>2. 募集者とやり取りする</h3>
+            <p>参加当日のことに関して不明な点があれば、事前に募集者とやり取りができます。（応募前でも可）<br />
+                My List &#9654; 該当するPostのタイトル &#9654; Details画面下部
+            </p>
+            <div class="img-center">
+                <span><img src="~/img/Mintsports-img/Details.png" height="400px" width="200px" /></span>
+                <span>&#9654;</span>
+                <span><img src="~/img/Mintsports-img/Reply.png" height="400px" width="200px" /></span>
+            </div>
+        </div>
+
+        <div id="chapter3" class="guide-step">
+            <h3>3. 開催日当日の流れ</h3>
+            <p>
+                参加当日、参加確認をする必要があります。募集者に認証コード（4桁数字）を聞いて、参加確認画面から入力してください。<br />
+                My List &#9654; 該当するPost &#9654; 参加確認ボタン
+            </p>
+            <div class="img-center">
+                <span><img src="~/img/Mintsports-img/MyList.png" height="400px" width="200px" /></span>
+                <span>&#9654;</span>
+                <span><img src="~/img/Mintsports-img/Confirm.png" height="400px" width="200px" /></span>
+                <span>&#9654;</span>
+                <span><img src="~/img/Mintsports-img/VerifyAttendance.png" height="400px" width="200px" /></span>
+            </div>
+            <p>※参加確認が取れないと報酬が参加者に支払われません。また、当サービスのサービス向上のために、報酬額が0円の場合でも参加確認をお願いしています。</p>
+        </div>
+
+        <div id="chapter4" class="guide-step">
+            <h3>4. レビュー</h3>
+            <p>イベント終了後、募集者に対して5段階の評価をお願いしています。</p>
+            <p>レビュー &#9654; 該当するユーザーを選択</p>
+        </div>
+    </div>
+
+    <div id="chapter00" class="guide-section2">
+        <h2 class="my-3 text-primary">募集者の方</h2>
+
+        <div id="chapter5" class="guide-step">
+            <h3>1. メンバーを募集する</h3>
+            <p>
+                右下の「＋ボタン」または「Create Postボタン」を押す。<br />
+                募集内容を入力してPostを作成しよう。
+            </p>
+            <div class="img-center">
+                <span><img src="~/img/Mintsports-img/Post.png" height="400px" width="200px" /></span>
+                <span>&#9654;</span>
+                <span><img src="~/img/Mintsports-img/CreatePost.png" height="400px" width="200px" /></span>
+            </div>
+        </div>
+
+        <div id="chapter6" class="guide-step">
+            <h3>2. メンバーを採用する</h3>
+            <p>My Postから応募者一覧を押すと応募者が確認できます。</p>
+            <div class="img-center">
+                <img src="~/img/Mintsports-img/MyPost.png" height="400px" width="200px" />
+            </div>
+            <p>
+                応募者の中から採用したい応募者にチェックを入れ、「選択したユーザーを採用ボタン」を押すと採用することができます。<br />
+                （Post作成時に報酬を設定している場合は、決済後に採用が完了します。）
+            </p>
+            <div class="img-center">
+                <span><img src="~/img/Mintsports-img/BeforAdopt.png" height="400px" width="200px" /></span>
+                <span>&#9654;</span>
+                <span><img src="~/img/Mintsports-img/AfterAdopt.png" height="400px" width="200px" /></span>
+            </div>
+        </div>
+
+        <div id="chapter7" class="guide-step">
+            <h3>3. 採用者とやり取りする</h3>
+            <p>
+                応募者や採用者、Postに関心を持っているユーザーから開催日当日のことに関して質問やコメントが届く可能性があるので、適切な対応をお願いします。また、採用者へメッセージを送ることも可能です。<br />
+                My Post &#9654; 該当するPostのタイトル &#9654; Details画面下部
+            </p>
+            <div class="img-center">
+                <span><img src="~/img/Mintsports-img/MyPostTitle.png" height="400px" width="200px" /></span>
+                <span>&#9654;</span>
+                <span><img src="~/img/Mintsports-img/BeforOwnerReply.png" height="400px" width="200px" /></span>
+                <span>&#9654;</span>
+                <span><img src="~/img/Mintsports-img/AfterOwnerReply.png" height="400px" width="200px" /></span>
+            </div>
+        </div>
+
+        <div id="chapter8" class="guide-step">
+            <h3>4. 開催日当日の流れ</h3>
+            <p>当日は採用した参加者が、実際に参加しているかを確認する必要があります。その際、募集者は参加者に対して認証コード（4桁数字）を教える必要があります。</p>
+            <p>My Post &#9654; 該当するPost &#9654; 認証コード</p>
+            <div class="img-center">
+                <img src="~/img/Mintsports-img/CheckCode.png" height="400px" width="200px" />
+            </div>
+            <p>※参加確認が取れないと報酬が参加者に支払われません。また、当サービスのサービス向上のために、報酬額が0円の場合でも参加確認をお願いしています。</p>
+        </div>
+
+        <div id="chapter9" class="guide-step">
+            <h3>5. レビュー</h3>
+            <p>イベント終了後、参加者に対して5段階の評価をお願いしています。</p>
+            <p>レビュー &#9654; 該当するユーザーを選択</p>
+        </div>
+    </div>
+
+</body>

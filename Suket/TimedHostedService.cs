@@ -5,6 +5,10 @@ using Stripe;
 using Suket.Controllers;
 using Suket.Data;
 using Suket.Models;
+using Amazon;
+using Amazon.SecretsManager.Model;
+using Amazon.SecretsManager;
+using System.Text.Json;
 
 namespace Suket
 {
@@ -20,6 +24,7 @@ namespace Suket
             _logger = logger;
         }
 
+        /*
         private static string GetStripeAPIKeyFromAzureKeyVault()
         {
             var keyVaultUrl = "https://stripetestapikey.vault.azure.net/";
@@ -29,6 +34,43 @@ namespace Suket
             KeyVaultSecret stripeAPIKeySecret = client.GetSecret(secretName);
 
             return stripeAPIKeySecret.Value;
+        }
+        */
+
+        private static async Task<string> GetStripeAPIKeyFromAWSSecretsManager()
+        {
+            string secretName = "MintSPORTS_secret";  // シークレットの名前を変更
+            string region = "ap-northeast-1";
+
+            IAmazonSecretsManager client = new AmazonSecretsManagerClient(RegionEndpoint.GetBySystemName(region));
+
+            GetSecretValueRequest request = new GetSecretValueRequest
+            {
+                SecretId = secretName,
+                VersionStage = "AWSCURRENT", // VersionStage defaults to AWSCURRENT if unspecified.
+            };
+
+            GetSecretValueResponse response;
+
+            try
+            {
+                response = await client.GetSecretValueAsync(request);
+            }
+            catch (Exception e)
+            {
+                // For a list of the exceptions thrown, see
+                // https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+                throw e;
+            }
+
+            // JSONからStripeAPIKeyを取得
+            var secrets = JsonSerializer.Deserialize<Dictionary<string, string>>(response.SecretString);
+            if (secrets != null && secrets.ContainsKey("StripeAPIKey"))
+            {
+                return secrets["StripeAPIKey"];
+            }
+
+            throw new Exception("StripeAPIKey not found in the secret.");
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -65,7 +107,10 @@ namespace Suket
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            StripeConfiguration.ApiKey = GetStripeAPIKeyFromAzureKeyVault();
+            //StripeConfiguration.ApiKey = GetStripeAPIKeyFromAzureKeyVault();
+            // シークレットマネージャーから非同期でStripe APIキーを取得し、同期的に待機
+            var stripeApiKey = GetStripeAPIKeyFromAWSSecretsManager().GetAwaiter().GetResult();
+            StripeConfiguration.ApiKey = stripeApiKey;
 
             // 直近24時間の開始と終了時刻を計算
             var currentMoment = DateTime.UtcNow;

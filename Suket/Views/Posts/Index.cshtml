@@ -27,7 +27,7 @@
 <head>
     <link rel="stylesheet" href="/css/PostIndex.css" />
     <link rel="stylesheet" href="/css/Pagination.css" />
-    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="/css/site.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
 </head>
 
@@ -51,7 +51,40 @@
         color: #999; /* ホバー時の色を変更 */
     }
 
+    .fixed-button-container {
+    position: fixed;
+    bottom: 70px;
+    right: 30px;
+    z-index: 1000; /* 他の要素より上に表示されるようにする */
+}
 
+.fixed-button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+}
+
+.modal-body a{
+        color: inherit;
+}
+
+.modal-body a div{
+        display: flex;
+        align-items: center;
+}
+
+.modal-body p{
+    margin-bottom:0px;
+    margin-left:10px;
+}
+
+    .pointer:hover {
+        cursor: pointer;
+    }
 </style>
 
 <body>
@@ -79,8 +112,8 @@
 
 
 <div class="d-flex justify-content-between align-items-center">
-    <h3 class="mr-3 text-primary" style="font-weight:bold">Post</h3>
-    <button id="filterButton" class="ml-auto d-flex align-items-center">
+    <h1 class="mr-3 text-primary" style="font-weight:bold">Post</h1>
+    <button id="filterButton" class="btn btn-outline-dark ml-auto d-flex align-items-center">
         <svg style="margin-right:5px;" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="humbleicons hi-adjustments ml-2">
             <path xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 6v-.5M17.5 4v5m0 11v-5.56M6.5 4v2m0 14v-8.44M6.5 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm5.5 8a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm5.5-5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
         </svg>
@@ -89,7 +122,7 @@
 </div>
 
 
-<div id="filterForm" class="d-none position-fixed bg-white rounded shadow-sm p-3" style="top: 0; right: 0; width: 80%; max-width: 600px; z-index: 100;">
+<div id="filterForm" class="d-none position-fixed bg-white rounded shadow-sm p-3" style="top: 50px; right: 0; width: 80%; max-width: 600px; z-index: 100;">
     <button id="closeButton" class="close">×</button>
     <form asp-action="Index" method="get">
         <div class="form-group">
@@ -115,6 +148,62 @@
                     else
                     {
                         <option value="Soccer">サッカー</option>
+                    }
+                    @if (selectedGenre == Genre.Basketball)
+                    {
+                        <option value="Basketball" selected>バスケットボール</option>
+                    }
+                    else
+                    {
+                        <option value="Basketball">バスケットボール</option>
+                    }
+                    @if (selectedGenre == Genre.Volleyball)
+                    {
+                        <option value="Volleyball" selected>バレーボール</option>
+                    }
+                    else
+                    {
+                        <option value="Volleyball">バレーボール</option>
+                    }
+                    @if (selectedGenre == Genre.Softball)
+                    {
+                        <option value="Softball" selected>ソフトボール</option>
+                    }
+                    else
+                    {
+                        <option value="Softball">ソフトボール</option>
+                    }
+                    @if (selectedGenre == Genre.Futsal)
+                    {
+                        <option value="Futsal" selected>フットサル</option>
+                    }
+                    else
+                    {
+                        <option value="Futsal">フットサル</option>
+                    }
+                    @if (selectedGenre == Genre.Bowling)
+                    {
+                        <option value="Bowling" selected>ボウリング</option>
+                    }
+                    else
+                    {
+                        <option value="Bowling">ボウリング</option>
+                    }
+                    @if (selectedGenre == Genre.Golf)
+                    {
+                        <option value="Golf" selected>ゴルフ</option>
+                    }
+                    else
+                    {
+                        <option value="Golf">ゴルフ</option>
+                    }
+                    @if (selectedGenre == Genre.Tennis)
+                    {
+                        <option value="Tennis" selected>テニス</option>
+                    }
+                    else
+                    {
+                        <option value="Tennis">テニス</option>
                     }
                     @if (selectedGenre == Genre.Q)
                     {
@@ -159,7 +248,7 @@
 </div>
 
 
-<div class="fixed-button-container">
+<div class="fixed-button-container d-md-none">
     <a asp-action="Create" class="fixed-button btn btn-primary">
         <i class="fas fa-plus"></i>
     </a>
@@ -199,9 +288,14 @@
 <div class="row row-cols-1 row-cols-md-3 g-4">
     @foreach (var a in Model.Posts)
     {
+        
+        var userAdoptionPosts = ViewData["UserAdoptionPosts"] as Dictionary<int, bool>;
+        //var isAdopted = userAdoptionPosts?[a.PostId] ?? false;
+        var isAdopted = userAdoptionPosts?.ContainsKey(a.PostId) == true ? userAdoptionPosts[a.PostId] : false;
+        
         <div class="col">
             <div class="card h-100">
-                <div class="card-body" style="margin-bottom:10px;">
+                <div class="card-body">
                     @{
                         var timeDifference = DateTimeOffset.UtcNow - a.Created;
                         string timeDifferenceString;
@@ -222,55 +316,116 @@
                             timeDifferenceString = "たった今";
                         }
                     }
-                    <h5 class="card-title"><a asp-action="Details" asp-route-id="@a.PostId">@((a.Title.Length > 17) ? a.Title.Substring(0, 17) + "..." : a.Title)</a></h5>
-                    <p class="card-text"><a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName">@(a.UserAccount.NickName ?? a.UserAccount.UserName)</a>・@timeDifferenceString</p>
-                    <p class="card-text">@Html.DisplayFor(modelItem => a.Prefecture)</p>
-                    <p class="card-text">@a.Place</p>
-                    <p class="card-text">@TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")</p>
+
+                    <h5 class="card-title"><a asp-action="Details" asp-route-id="@a.PostId">@((a.Title.Length > 30) ? a.Title.Substring(0, 30) + "..." : a.Title)</a><span class="text-secondary" style="font-size:14px;">・@timeDifferenceString</span></h5>
+                    <div style="display: flex; align-items: center; margin-bottom:10px;">
+                        <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName">
+                        @if (!string.IsNullOrWhiteSpace(a.UserAccount.ProfilePictureUrl))
+                        {
+                                <img src="@a.UserAccount.ProfilePictureUrl" alt="Profile Picture" class="profile-icon" />
+                        }
+                        else
+                        {
+                                <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/Spork_Logo.jpg" alt="Profile Picture" class="profile-icon" />
+                        }
+                        </a>
+                            <p class="card-text"><a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName" style="color: inherit; text-decoration: none;">@(a.UserAccount.NickName ?? a.UserAccount.UserName)</a></p>
+                    </div>
+                    <a asp-action="Details" asp-route-id="@a.PostId" style="color: inherit; text-decoration: none;">
+                            <p class="card-text post-icon">
+                                <span class="material-symbols-outlined text-secondary me-2">
+                                    location_on
+                                </span>@Html.DisplayFor(modelItem => a.Prefecture)
+                            </p>
+                            <p class="card-text post-icon">
+                                <span class="material-symbols-outlined text-secondary me-2">
+                                    location_on
+                                </span>@a.Place
+                            </p>
+                            <p class="card-text post-icon">
+                                <span class="material-symbols-outlined text-secondary me-2">
+                                    calendar_month
+                                </span>@TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")
+                            </p>
                     <p class="card-text">報酬：@a.Reward　円</p>
                     <pre class="card-text">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre>
-                    <p class="card-text">@Html.DisplayFor(modelItem => a.Genre)</p>
-                    @{
-                        var userAdoptionPosts = ViewData["UserAdoptionPosts"] as Dictionary<int, bool>;
-                        //var isAdopted = userAdoptionPosts?[a.PostId] ?? false;
-                        var isAdopted = userAdoptionPosts?.ContainsKey(a.PostId) == true ? userAdoptionPosts[a.PostId] : false;
-                    }
-
-                    @if ((isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id)) || isAdmin)
+                    <p class="card-text post-icon">
+                        <span class="material-symbols-outlined text-secondary me-2">
+                            sell
+                        </span>@Html.DisplayFor(modelItem => a.Genre)
+                    </p>
+                            @if ((isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id)) || isAdmin)
                     {
                         <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
                     }
-
+                    </a>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <button class="subscription-button" data-post-id="@a.PostId" data-reward="@a.Reward">応募</button>
                             <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
                         </div>
-                        @if (isAdopted)
-                        {
-                            <div style="margin-left: auto;">
-                                <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId" class="btn btn-success">出席確認</a>
-                            </div>
-                        }
+                        
+                        <div style="display: flex; align-items: center; margin-left:auto;">
+                            @if (isAdopted)
+                            {
+                                <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId" class="btn btn-success" style="margin-right:5px;">参加確認</a>
+                            }
+                                <span class="material-symbols-outlined pointer" div data-bs-toggle="modal" data-bs-target="@($"#modal{a.PostId}")">
+                                    more_vert
+                                </span>
+                        </div>
                     </div>
 
 
+                    <!-- モーダル -->
+                    <div class="modal fade" id="@($"modal{a.PostId}")" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="modalLabel">オプション</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    @if ((isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id)) || isAdmin)
+                                    {
+                                        var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
+                                        var adoptionExists = adoptions.ContainsKey(a.PostId) && adoptions[a.PostId];
 
-                    @if ((isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id)) || isAdmin)
-                    {
-                        var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
-                        var adoptionExists = adoptions.ContainsKey(a.PostId) && adoptions[a.PostId];
-
-                        <p>
-                            <a asp-action="Subscriber" asp-route-id="@a.PostId">応募者一覧</a>
-                            <a asp-action="Edit" asp-route-id="@a.PostId">Edit</a>
-                            @if (!adoptionExists && isAdmin)
-                            {
-                                <span> | </span>
-                                <a asp-action="Delete" asp-route-id="@a.PostId">削除</a>
-                            }
-                        </p>
-                    }
+                                        
+                                        <a asp-action="Subscriber" asp-route-id="@a.PostId">
+                                            <div>
+                                                <span class="material-symbols-outlined text-secondary">
+                                                    group
+                                                </span>
+                                                <p>応募者一覧</p>
+                                            </div>
+                                        </a>
+                                        <br />
+                                        <a asp-action="Edit" asp-route-id="@a.PostId">
+                                            <div>
+                                                <span class="material-symbols-outlined text-secondary">
+                                                    edit
+                                                </span>
+                                                <p>Edit</p>
+                                            </div>
+                                        </a>
+                                        @if (!adoptionExists || isAdmin)
+                                        {
+                                            <br />
+                                            <a asp-action="Delete" asp-route-id="@a.PostId">
+                                                <div>
+                                                    <span class="material-symbols-outlined text-secondary">
+                                                        delete
+                                                    </span>
+                                                    <p>削除</p>
+                                                </div>
+                                            </a>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -369,20 +524,20 @@
         });
         
         async function checkUserHasStripeAccount() {
-            var result = false;
-            // Make Ajax request to your server-side endpoint to check if the user has a Stripe account
+            var stripeAccountStatus = { hasStripeAccountId: false, detailsSubmitted: false };
+
             await $.ajax({
-                url: '/Stripe/HasStripeAccount', // replace this with your server-side endpoint
+                url: '/Stripe/HasStripeAccount',
                 type: 'GET',
                 success: function (data) {
-                    result = data.hasStripeAccount;
+                    stripeAccountStatus = data;
                 },
                 error: function (error) {
-                    console.error('Error while checking if user has Stripe account', error);
+                    console.error('Error while checking Stripe account status', error);
                 }
             });
 
-            return result;
+            return stripeAccountStatus;
         }
 
         $(function () {
@@ -412,18 +567,21 @@
                 var postId = button.data('post-id');
                 var postReward = parseFloat(button.data('reward')); // Get the reward from the button's data attribute
 
-                if (postReward !== 0){
+                if (postReward !== 0) {
+                    const stripeAccountStatus = await checkUserHasStripeAccount();
 
-                    const hasStripeAccount = await checkUserHasStripeAccount();
+                    if (!stripeAccountStatus.hasStripeAccountId || !stripeAccountStatus.detailsSubmitted) {
+                        var message = stripeAccountStatus.hasStripeAccountId ?
+                            "銀行口座の詳細を完了する必要があります。続行しますか？" :
+                            "報酬を受け取るには銀行口座の登録が必要です。作成しますか？";
 
-                    if (!hasStripeAccount) {
-                        // If the user does not have a Stripe account, request to create one
-                        var confirmResult = confirm("報酬を受け取るには銀行口座の登録が必要です。作成しますか？（口座を登録しないと応募はできません。）");
+                        var confirmResult = confirm(message);
                         if (confirmResult) {
-                            $('#loadingSpinner, #loadingOverlay').removeClass('d-none'); // ローディングスピナーとオーバーレイを表示
+                            $('#loadingSpinner, #loadingOverlay').removeClass('d-none');
                             setTimeout(() => {
-                                window.location.href = '/Stripe/CreateAccount';
-                            }, 500); // 500ミリ秒のディレイを追加
+                                var redirectUrl = stripeAccountStatus.hasStripeAccountId ? '/Stripe/CreateAccountLink' : '/Stripe/CreateAccount';
+                                window.location.href = redirectUrl;
+                            }, 500);
                         }
                         return;
                     }

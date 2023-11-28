@@ -36,7 +36,7 @@ a.ff-title {
     display: inline-block;
     width: 40px;
     height: 40px;
-    background-color: blue;
+    /*background-color: blue;*/
     border-radius: 50%; /* 丸い形にする */
     color: white; /* アイコンの色を白にする */
     text-align: center;
@@ -50,7 +50,7 @@ a.ff-title {
 
 .fixed-button-container {
     position: fixed;
-    bottom: 30px;
+    bottom: 70px;
     right: 30px;
     z-index: 1000; /* 他の要素より上に表示されるようにする */
 }
@@ -63,4 +63,8 @@ a.ff-title {
     justify-content: center;
     align-items: center;
     font-size: 24px;
+}
+
+pre {
+    white-space: pre-wrap;
 }

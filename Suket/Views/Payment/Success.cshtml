@@ -1,4 +1,7 @@
-﻿<!DOCTYPE html>
+﻿@{
+    ViewData["Title"] = "Success";
+}
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -8,7 +11,7 @@
         // 5秒後にリダイレクトする関数
         function redirectToSubscriber() {
             var postId = document.getElementById("postId").value;  // inputタグからpostIdを取得
-            var url = "https://localhost:7144/Posts/Subscriber/" + postId;
+            var url = "https://mintsports.net/Posts/Subscriber/" + postId;
             window.location.href = url;  // リダイレクト
         }
 

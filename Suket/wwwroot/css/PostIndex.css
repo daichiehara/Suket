@@ -10,6 +10,23 @@
     background-color: yellow;
 }
 
+.card-body a{
+    text-decoration: none;
+}
+
+.post-icon {
+    display: flex;
+    align-items: center; /* 縦方向の中央揃え */
+    justify-content: flex-start; /* アイテムを左側に寄せる */
+}
+
+.profile-icon {
+    margin-right: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+}
+
 /*
 .post-container {
     display: flex;
@@ -147,4 +164,22 @@ input:checked + .slider:before {
     align-self: center;
     vertical-align: middle;
     margin-top: -0.1em;
+}
+
+.modal-body a {
+    color: inherit;
+}
+
+    .modal-body a div {
+        display: flex;
+        align-items: center;
+    }
+
+.modal-body p {
+    margin-bottom: 0px;
+    margin-left: 10px;
+}
+
+.pointer:hover {
+    cursor: pointer;
 }

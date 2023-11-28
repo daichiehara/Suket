@@ -9,18 +9,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="~/css/site.css" />
+    <style>
+        @@keyframes slideUp {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+
+        @@keyframes slideDown {
+          from {
+            transform: translateY(0);
+          }
+          to {
+            transform: translateY(100%);
+          }
+        }
+
+        #startNowButton.slide-up {
+          animation: slideUp 0.5s forwards;
+        }
+
+        #startNowButton.slide-down {
+          animation: slideDown 0.5s forwards;
+        }
+
+    </style>
 </head>
 <body>
+
     <!-- スマホサイズ -->
     <div class="d-md-none">
         <!-- Header Section -->
         <div class="text-center py-3">
-            <img src="~/img/MintSPORTS.png" alt="Image" id="header-image" class="img-fluid p-4 pb-0" style="max-width: 90%;">
+            <img src="~/img/MintSPORTS.png" alt="Image" id="header-image" class="img-fluid p-4 pb-0 pt-0" style="max-width: 90%;">
             <br>
             <img src="~/img/handman.png" alt="Image" id="header-image" class="img-fluid p-4 pt-1 pb-1" style="max-width: 95%;">
             <img src="~/img/header_phrase.png" alt="Image" id="header-image" class="img-fluid p-4 pt-0" style="max-width: 80%;">
             <div class="d-grid gap-2 pb-5" style="max-width: 60%; margin: auto;">
-                <a asp-controller="Posts" asp-action="Index" class="btn btn-primary rounded-pill" role="button" style="border-radius: 25px; height: 50px; line-height: 32px; font-size: 25px;">START NOW</a>
+                <a asp-controller="Posts" asp-action="Index" class="btn btn-primary rounded-pill" role="button" style="border-radius: 25px; height: 50px; line-height: 39px; font-size: 25px;">START NOW</a>
             </div>
         </div>
 
@@ -264,4 +293,42 @@
             </div>
         </div>
     </div>
+
+    <div id="startNowButton" style="display: none; position: fixed; bottom: 0; left: 0; width: 100%; background-color: white; padding: 10px 0; box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);">
+        <!-- ボタンを中央に配置するためのコンテナ -->
+        <div style="text-align: center;">
+            <a class="btn btn-outline-primary" style="margin-right: 10px; padding: 1rem 2rem; font-size: 1.5rem; border-radius: .5rem; font-weight:bold;" asp-controller="Posts" asp-action="Index">
+                募集一覧
+            </a>
+            <a class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.5rem; border-radius: .5rem; font-weight:bold;" asp-area="Identity" asp-page="/Account/Register">
+                会員登録（無料）
+            </a>
+        </div>
+    </div>
+
 </body>
+
+@section Scripts{
+    <script>
+        // スクロールイベントを監視する
+        window.addEventListener('scroll', function() {
+          var button = document.getElementById('startNowButton');
+          // スクロール量に応じてボタンの表示を切り替える
+          if (window.pageYOffset > 700) { // 100px以上スクロールしたら表示
+            button.classList.remove('slide-down');
+            button.classList.add('slide-up');
+            button.style.display = 'block';
+          } else { // それ以外は非表示
+            button.classList.remove('slide-up');
+            button.classList.add('slide-down');
+            // アニメーションが終わったらdisplayをnoneにする
+            button.addEventListener('animationend', function() {
+              if (button.classList.contains('slide-down')) {
+                button.style.display = 'none';
+              }
+            });
+          }
+        });
+
+    </script>
+}
