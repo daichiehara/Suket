@@ -250,6 +250,9 @@ namespace Suket.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("PaymentType")
+                        .HasColumnType("integer");
+
                     b.Property<int>("PostId")
                         .HasColumnType("integer");
 
@@ -294,6 +297,9 @@ namespace Suket.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<int>("PaymentType")
+                        .HasColumnType("integer");
 
                     b.Property<int>("PeopleCount")
                         .HasColumnType("integer");
@@ -445,6 +451,46 @@ namespace Suket.Migrations
                     b.ToTable("Subscription");
                 });
 
+            modelBuilder.Entity("Suket.Models.TransactionRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsTransferred")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PaymentIntentId")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("PostId")
+                        .IsRequired()
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("TransactionDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserAccountId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("UserAccountId");
+
+                    b.ToTable("TransactionRecord");
+                });
+
             modelBuilder.Entity("Suket.Models.UserAccount", b =>
                 {
                     b.Property<string>("Id")
@@ -538,6 +584,22 @@ namespace Suket.Migrations
                         .IsUnique();
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("Suket.Models.UserBalance", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserBalance");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -752,6 +814,36 @@ namespace Suket.Migrations
                     b.Navigation("UserAccount");
                 });
 
+            modelBuilder.Entity("Suket.Models.TransactionRecord", b =>
+                {
+                    b.HasOne("Suket.Models.Post", "Post")
+                        .WithMany("TransactionRecords")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Suket.Models.UserAccount", "UserAccount")
+                        .WithMany("TransactionRecords")
+                        .HasForeignKey("UserAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+
+                    b.Navigation("UserAccount");
+                });
+
+            modelBuilder.Entity("Suket.Models.UserBalance", b =>
+                {
+                    b.HasOne("Suket.Models.UserAccount", "UserAccount")
+                        .WithOne("UserBalance")
+                        .HasForeignKey("Suket.Models.UserBalance", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("UserAccount");
+                });
+
             modelBuilder.Entity("Suket.Models.Post", b =>
                 {
                     b.Navigation("Adoptions");
@@ -767,6 +859,8 @@ namespace Suket.Migrations
                     b.Navigation("RollCalls");
 
                     b.Navigation("Subscriptions");
+
+                    b.Navigation("TransactionRecords");
                 });
 
             modelBuilder.Entity("Suket.Models.UserAccount", b =>
@@ -788,6 +882,11 @@ namespace Suket.Migrations
                     b.Navigation("RollCalls");
 
                     b.Navigation("Subscriptions");
+
+                    b.Navigation("TransactionRecords");
+
+                    b.Navigation("UserBalance")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

@@ -4,8 +4,35 @@
 @inject SignInManager<UserAccount> signInManager;
 
 @{
-    ViewData["Title"] = "Post";
+    var selectedGenre = ViewData["SelectedGenre"] as Genre?;
+    var selectedPrefecture = ViewData["CurrentPrefecture"] as Prefecture?;
+    var currentSearch = ViewData["CurrentSearch"] as string;
+    var fromDateTime = ViewData["FromDateTime"] as string;
+    var hitCount = Model.Posts.Count(); // 検索結果の件数を取得
+}
 
+@{
+    string description = "";
+    if(selectedGenre != null && selectedPrefecture != null)
+    {
+        ViewData["Title"] = $"{selectedPrefecture.GetDisplayName()}｜{selectedGenre.GetDisplayName()}の募集";
+        description = $"{selectedPrefecture.GetDisplayName()}で{selectedGenre.GetDisplayName()}の助っ人・メンバー・仲間の募集があります。好きな場所で好きなスポーツを楽しみましょう。ミントスポーツは1試合1イベントごとにスポーツに参加できます。";
+    }
+    else if(selectedGenre == null && selectedPrefecture != null)
+    {
+        ViewData["Title"] = $"{selectedPrefecture.GetDisplayName()}の募集";
+        description = $"{selectedPrefecture.GetDisplayName()}で助っ人・メンバー・仲間の募集があります。好きな場所・好きなスポーツを楽しみましょう。ミントスポーツは1試合1イベントごとにスポーツに参加できます。";
+    }
+    else if(selectedGenre != null && selectedPrefecture == null)
+    {
+        ViewData["Title"] = $"{selectedGenre.GetDisplayName()}の募集";
+        description = $"{selectedGenre.GetDisplayName()}の助っ人・メンバー・仲間の募集があります。好きな場所で好きなスポーツを楽しみましょう。ミントスポーツは1試合1イベントごとにスポーツに参加できます。";
+    }
+    else
+    {
+        ViewData["Title"] = "募集一覧";
+        description = "助っ人・メンバー・仲間の募集があります。好きな場所で好きなスポーツを楽しみましょう。ミントスポーツは1試合1イベントごとにスポーツに参加できます。";
+    }
     var currentUser = await userManager.GetUserAsync(User);
     bool isLoggedIn = signInManager.IsSignedIn(User) && currentUser != null;
     var isAdmin = false;
@@ -16,19 +43,23 @@
     }
 }
 
-@{
-    var selectedGenre = ViewData["SelectedGenre"] as Genre?;
-    var selectedPrefecture = ViewData["CurrentPrefecture"] as Prefecture?;
-    var currentSearch = ViewData["CurrentSearch"] as string;
-    var fromDateTime = ViewData["FromDateTime"] as string;
-    var hitCount = Model.Posts.Count(); // 検索結果の件数を取得
-}
-
 <head>
     <link rel="stylesheet" href="/css/PostIndex.css" />
     <link rel="stylesheet" href="/css/Pagination.css" />
     <link rel="stylesheet" href="/css/site.css" />
+    <script src="https://js.stripe.com/v3/"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <meta name=”description” content="@description" />
+
+    <!-- OGPの設定 -->
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="@ViewData["Title"]" />
+    <meta property="og:description" content="ミントスポーツは「明日試合に出れる」マッチングプラットフォームです。" />
+    <meta property="og:url" content="https://mintsports.net/Posts/Index" />
+    <meta property="og:site_name" content="Mint SPORTS - ミントスポーツ" />
+    <meta property="og:image" content="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/twittercard.jpg" />
+    <!-- Twitterカードの設定 -->
+    <meta name="twitter:card" content="summary_large_image" />
 </head>
 
 <style>
@@ -85,6 +116,7 @@
     .pointer:hover {
         cursor: pointer;
     }
+
 </style>
 
 <body>
@@ -111,16 +143,24 @@
 </div>
 
 
-<div class="d-flex justify-content-between align-items-center">
-    <h1 class="mr-3 text-primary" style="font-weight:bold">Post</h1>
-    <button id="filterButton" class="btn btn-outline-dark ml-auto d-flex align-items-center">
-        <svg style="margin-right:5px;" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="humbleicons hi-adjustments ml-2">
-            <path xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 6v-.5M17.5 4v5m0 11v-5.56M6.5 4v2m0 14v-8.44M6.5 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm5.5 8a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm5.5-5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
-        </svg>
-        絞り込み
-    </button>
+<div class="row">
+    <div class="col-md-3"></div>
+    <div class="d-flex justify-content-between align-items-center mb-2 col-md-6">
+        <div class="d-flex align-items-center">
+            <span class="material-symbols-outlined text-primary fs-3 me-2">
+                home
+            </span>
+            <h5 class="fw-bold mb-0">募集情報</h5>
+        </div>
+        <button id="filterButton" class="btn btn-outline-dark ml-auto d-flex align-items-center rounded-pill">
+            <svg style="margin-right:5px;" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="humbleicons hi-adjustments ml-2">
+                <path xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 6v-.5M17.5 4v5m0 11v-5.56M6.5 4v2m0 14v-8.44M6.5 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm5.5 8a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm5.5-5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
+            </svg>
+            絞り込み
+        </button>
+    </div>
+    <div class="col-md-3"></div>
 </div>
-
 
 <div id="filterForm" class="d-none position-fixed bg-white rounded shadow-sm p-3" style="top: 50px; right: 0; width: 80%; max-width: 600px; z-index: 100;">
     <button id="closeButton" class="close">×</button>
@@ -285,151 +325,179 @@
     </div>
 }
 
-<div class="row row-cols-1 row-cols-md-3 g-4">
-    @foreach (var a in Model.Posts)
-    {
+<div class="row">
+    <div class="col-md-3"></div>
+    <div class="col-md-6 mt-1" id="postsContainer">
+        @foreach (var a in Model.Posts)
+        {
         
-        var userAdoptionPosts = ViewData["UserAdoptionPosts"] as Dictionary<int, bool>;
-        //var isAdopted = userAdoptionPosts?[a.PostId] ?? false;
-        var isAdopted = userAdoptionPosts?.ContainsKey(a.PostId) == true ? userAdoptionPosts[a.PostId] : false;
+            var userAdoptionPosts = ViewData["UserAdoptionPosts"] as Dictionary<int, bool>;
+            //var isAdopted = userAdoptionPosts?[a.PostId] ?? false;
+            var isAdopted = userAdoptionPosts?.ContainsKey(a.PostId) == true ? userAdoptionPosts[a.PostId] : false;
         
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body">
-                    @{
-                        var timeDifference = DateTimeOffset.UtcNow - a.Created;
-                        string timeDifferenceString;
-                        if (timeDifference.TotalDays >= 1)
-                        {
-                            timeDifferenceString = $"{(int)timeDifference.TotalDays}日前";
-                        }
-                        else if (timeDifference.TotalHours >= 1)
-                        {
-                            timeDifferenceString = $"{(int)timeDifference.TotalHours}時間前";
-                        }
-                        else if (timeDifference.TotalMinutes >= 1)
-                        {
-                            timeDifferenceString = $"{(int)timeDifference.TotalMinutes}分前";
-                        }
-                        else
-                        {
-                            timeDifferenceString = "たった今";
-                        }
-                    }
-
-                    <h5 class="card-title"><a asp-action="Details" asp-route-id="@a.PostId">@((a.Title.Length > 30) ? a.Title.Substring(0, 30) + "..." : a.Title)</a><span class="text-secondary" style="font-size:14px;">・@timeDifferenceString</span></h5>
-                    <div style="display: flex; align-items: center; margin-bottom:10px;">
-                        <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName">
-                        @if (!string.IsNullOrWhiteSpace(a.UserAccount.ProfilePictureUrl))
-                        {
-                                <img src="@a.UserAccount.ProfilePictureUrl" alt="Profile Picture" class="profile-icon" />
-                        }
-                        else
-                        {
-                                <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/Spork_Logo.jpg" alt="Profile Picture" class="profile-icon" />
-                        }
-                        </a>
-                            <p class="card-text"><a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName" style="color: inherit; text-decoration: none;">@(a.UserAccount.NickName ?? a.UserAccount.UserName)</a></p>
-                    </div>
-                    <a asp-action="Details" asp-route-id="@a.PostId" style="color: inherit; text-decoration: none;">
-                            <p class="card-text post-icon">
-                                <span class="material-symbols-outlined text-secondary me-2">
-                                    location_on
-                                </span>@Html.DisplayFor(modelItem => a.Prefecture)
-                            </p>
-                            <p class="card-text post-icon">
-                                <span class="material-symbols-outlined text-secondary me-2">
-                                    location_on
-                                </span>@a.Place
-                            </p>
-                            <p class="card-text post-icon">
-                                <span class="material-symbols-outlined text-secondary me-2">
-                                    calendar_month
-                                </span>@TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")
-                            </p>
-                    <p class="card-text">報酬：@a.Reward　円</p>
-                    <pre class="card-text">@((a.Message.Length > 100) ? a.Message.Substring(0, 100) + "..." : a.Message)</pre>
-                    <p class="card-text post-icon">
-                        <span class="material-symbols-outlined text-secondary me-2">
-                            sell
-                        </span>@Html.DisplayFor(modelItem => a.Genre)
-                    </p>
-                            @if ((isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id)) || isAdmin)
-                    {
-                        <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
-                    }
-                    </a>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <button class="subscription-button" data-post-id="@a.PostId" data-reward="@a.Reward">応募</button>
-                            <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
-                        </div>
-                        
-                        <div style="display: flex; align-items: center; margin-left:auto;">
-                            @if (isAdopted)
+            <div class="col mt-2">
+                <div class="card h-100">
+                    <div class="card-body">
+                        @{
+                            var timeDifference = DateTimeOffset.UtcNow - a.Created;
+                            string timeDifferenceString;
+                            if (timeDifference.TotalDays >= 1)
                             {
-                                <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId" class="btn btn-success" style="margin-right:5px;">参加確認</a>
+                                timeDifferenceString = $"{(int)timeDifference.TotalDays}日前";
                             }
-                                <span class="material-symbols-outlined pointer" div data-bs-toggle="modal" data-bs-target="@($"#modal{a.PostId}")">
+                            else if (timeDifference.TotalHours >= 1)
+                            {
+                                timeDifferenceString = $"{(int)timeDifference.TotalHours}時間前";
+                            }
+                            else if (timeDifference.TotalMinutes >= 1)
+                            {
+                                timeDifferenceString = $"{(int)timeDifference.TotalMinutes}分前";
+                            }
+                            else
+                            {
+                                timeDifferenceString = "たった今";
+                            }
+                        }
+
+                            <div class="d-flex flex-wrap">
+                                <p class="card-text post-icon f-14 mb-0 me-2 text-secondary text-truncate lh-1">
+                                    <span class="material-symbols-outlined text-secondary me-1 f-14">
+                                        calendar_month
+                                    </span>
+                                    @TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")
+                                </p>
+
+                                <p class="card-text post-icon f-14 text-secondary text-truncate lh-1">
+                                    <span class="material-symbols-outlined text-secondary me-1 f-14">
+                                        location_on
+                                    </span>
+                                    @Html.DisplayFor(modelItem => a.Prefecture)｜@a.Place
+                                </p>
+                            </div>
+                            <h5 class="card-title mb-1"><a asp-action="Details" asp-route-id="@a.PostId" class="stretched-link">@((a.Title.Length > 30) ? a.Title.Substring(0, 30) + "..." : a.Title)</a><span class="text-secondary" style="font-size:14px;">・@timeDifferenceString</span></h5>
+                            <div class="d-flex align-items-center mb-1">
+                            <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName" class="stretched-link" style="position: relative;">
+                            @if (!string.IsNullOrWhiteSpace(a.UserAccount.ProfilePictureUrl))
+                            {
+                                    <img src="@a.UserAccount.ProfilePictureUrl" alt="Profile Picture" class="profile-icon" />
+                            }
+                            else
+                            {
+                                        <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/kkrn_icon_user_3.png" alt="Profile Picture" class="profile-icon" />
+                            }
+                            </a>
+                                <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName" class="card-text profile-link stretched-link" style="position: relative;">@(a.UserAccount.NickName ?? a.UserAccount.UserName)</a>
+                        </div>
+     
+                        <div class="d-flex mb-2">
+                            <div class="card-text d-flex align-items-center">
+                                <span class="material-symbols-outlined text-secondary me-2 @(a.PaymentType == 0 ? "text-warning" : "")">
+                                    payments
+                                </span>
+                                <div class="mb-0 d-flex align-items-center">
+                                    @if(a.PaymentType == 0)
+                                    {
+                                        <p class="mb-0">報酬</p>
+                                    }
+                                    else
+                                    {
+                                        <p class="mb-0">参加費</p>        
+                                    }
+                                    <p class="mb-0"> : @a.Reward　円</p>
+                                </div>
+                            </div>
+
+                            <p class="card-text post-icon ms-auto">
+                                <span class="material-symbols-outlined text-secondary me-2 fs-5">
+                                    sell
+                                </span>@Html.DisplayFor(modelItem => a.Genre)
+                            </p>
+                        </div>
+                        <pre style="white-space:normal;" class="card-text">@((a.Message.Length > 50) ? a.Message.Substring(0, 50) + "..." : a.Message)</pre>
+                        @if ((isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id)) || isAdmin)
+                        {
+                            <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
+                        }
+                        <div class="mt-2" style="display: flex; justify-content: space-between; align-items: center;">
+                            @if (a.State == State.Recruiting)
+                            {
+                                <div>
+                                    <button class="subscription-button btn btn-outline-primary rounded-pill stretched-link" style="position: relative; width:100px;" data-post-id="@a.PostId" data-reward="@a.Reward" data-payment-type="@((int)a.PaymentType)">応募する</button>
+                                    <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
+                                </div>
+                            }
+                            <div style="display: flex; align-items: center; margin-left:auto;">
+                                @if (isAdopted)
+                                {
+                                    <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId" class="btn btn-success stretched-link" style="margin-right:5px; position: relative;">参加確認</a>
+                                }
+                                <span class="material-symbols-outlined pointer stretched-link" style="position: relative;" div data-bs-toggle="modal" data-bs-target="@($"#modal{a.PostId}")">
                                     more_vert
                                 </span>
+                            </div>
                         </div>
-                    </div>
 
 
-                    <!-- モーダル -->
-                    <div class="modal fade" id="@($"modal{a.PostId}")" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="modalLabel">オプション</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    @if ((isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id)) || isAdmin)
-                                    {
-                                        var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
-                                        var adoptionExists = adoptions.ContainsKey(a.PostId) && adoptions[a.PostId];
+                        <!-- モーダル -->
+                        <div class="modal fade" id="@($"modal{a.PostId}")" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="modalLabel">オプション</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        @if ((isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id)) || isAdmin)
+                                        {
+                                            var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
+                                            var adoptionExists = adoptions.ContainsKey(a.PostId) && adoptions[a.PostId];
 
                                         
-                                        <a asp-action="Subscriber" asp-route-id="@a.PostId">
-                                            <div>
-                                                <span class="material-symbols-outlined text-secondary">
-                                                    group
-                                                </span>
-                                                <p>応募者一覧</p>
-                                            </div>
-                                        </a>
-                                        <br />
-                                        <a asp-action="Edit" asp-route-id="@a.PostId">
-                                            <div>
-                                                <span class="material-symbols-outlined text-secondary">
-                                                    edit
-                                                </span>
-                                                <p>Edit</p>
-                                            </div>
-                                        </a>
-                                        @if (!adoptionExists || isAdmin)
-                                        {
-                                            <br />
-                                            <a asp-action="Delete" asp-route-id="@a.PostId">
+                                            <a asp-action="Subscriber" asp-route-id="@a.PostId">
                                                 <div>
                                                     <span class="material-symbols-outlined text-secondary">
-                                                        delete
+                                                        group
                                                     </span>
-                                                    <p>削除</p>
+                                                    <p>採用する・応募者一覧</p>
                                                 </div>
                                             </a>
+                                            @if (a.State != State.Cancel)
+                                            {
+                                                <br />
+                                                <a asp-action="Edit" asp-route-id="@a.PostId">
+                                                    <div>
+                                                        <span class="material-symbols-outlined text-secondary">
+                                                            edit
+                                                        </span>
+                                                        <p>Edit</p>
+                                                    </div>
+                                                </a>
+                                            }
+                                            @if (!adoptionExists || isAdmin)
+                                            {
+                                                <br />
+                                                <a asp-action="Delete" asp-route-id="@a.PostId">
+                                                    <div>
+                                                        <span class="material-symbols-outlined text-secondary">
+                                                            delete
+                                                        </span>
+                                                        <p>削除</p>
+                                                    </div>
+                                                </a>
+                                            }
                                         }
-                                    }
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    }
+        }
+        <button id="loadMoreButton" class="btn btn-link rounded-pill w-100 mt-2">もっと見る</button>
+    </div>
+    
+    <div class="col-md-3"></div>
 </div>
 @{
     var errorMessage = ViewData["ErrorMessage"] as string;
@@ -453,6 +521,7 @@
         queryString = queryString.Substring(1); // Remove the leading '?'
     }
 }
+<!--
 <div style="text-align:center; margin-top:20px;">
     @if (Model.Posts.Any())
     {
@@ -463,8 +532,10 @@
         <text>該当する投稿はありません。</text>
     }
 </div>
+-->
+<!--
 <div class="pagination">
-    <!-- Previous page link -->
+ 
     @if (Model.CurrentPage > 1)
     {
         <a class="pagination-link" asp-action="Index" asp-route-page="@(Model.CurrentPage - 1)" asp-route-searchString="@ViewData["CurrentSearch"]"
@@ -476,7 +547,7 @@
         <span class="disabled">Previous</span>
     }
 
-    <!-- Page links -->
+    
     @for (int i = 1; i <= Model.TotalPages; i++)
     {
         if (Model.CurrentPage == i)
@@ -486,23 +557,24 @@
         else
         {
             <a class="pagination-link" asp-action="Index" asp-route-page="@i" asp-route-searchString="@ViewData["CurrentSearch"]"
-       asp-route-genre="@((Genre?)ViewData["SelectedGenre"])" asp-route-prefecture="@((Prefecture?)ViewData["CurrentPrefecture"])"
-       asp-route-fromDateTime="@((string)ViewData["FromDateTime"])" asp-route-sortByDateTime="@((bool)ViewData["SortByDateTime"])">@i</a>
+            asp-route-genre="@((Genre?)ViewData["SelectedGenre"])" asp-route-prefecture="@((Prefecture?)ViewData["CurrentPrefecture"])"
+            asp-route-fromDateTime="@((string)ViewData["FromDateTime"])" asp-route-sortByDateTime="@((bool)ViewData["SortByDateTime"])">@i</a>
         }
     }
 
-    <!-- Next page link -->
+  
     @if (Model.CurrentPage < Model.TotalPages)
     {
         <a class="pagination-link" asp-action="Index" asp-route-page="@(Model.CurrentPage + 1)" asp-route-searchString="@ViewData["CurrentSearch"]"
-       asp-route-genre="@((Genre?)ViewData["SelectedGenre"])" asp-route-prefecture="@((Prefecture?)ViewData["CurrentPrefecture"])"
-       asp-route-fromDateTime="@((string)ViewData["FromDateTime"])" asp-route-sortByDateTime="@((bool)ViewData["SortByDateTime"])">Next</a>
+        asp-route-genre="@((Genre?)ViewData["SelectedGenre"])" asp-route-prefecture="@((Prefecture?)ViewData["CurrentPrefecture"])"
+        asp-route-fromDateTime="@((string)ViewData["FromDateTime"])" asp-route-sortByDateTime="@((bool)ViewData["SortByDateTime"])">Next</a>
     }
     else
     {
         <span class="disabled">Next</span>
     }
 </div>
+-->
 </body>
 
 
@@ -511,6 +583,9 @@
 
 @section Scripts {
     <script>
+
+        var isLoggedIn = @Json.Serialize(isLoggedIn);
+
         $(document).ready(function () {
             $("#viewTransactionHistory").click(function () {
                 $(this).hide();
@@ -560,52 +635,104 @@
                 }
             });
 
+            // Stripeの公開キーの初期化
+            //test
+            //var stripe = Stripe('pk_test_51NOazSCtzLwFlO8auPQ8fbTs7g3XUGuacXM4ww3cHUQhs4n2wEggHp7IJO4LHN7nKufFIrwEa2SGTO3kavmOat4u00FGyurm7u');
+            var stripe = Stripe('pk_live_51NOazSCtzLwFlO8aKGf5T9MUhsZ61B6YXYbEfBGJ89WBRWGS9lneiOXIttpzPYPwmdataTumrLyLQO1OhCAQ2nFv00lMQJMfsa');  // Replace with your Stripe public key
+
             // Handle button clicks
             $('.subscription-button').click(async function () {
+                if (!isLoggedIn) {
+                    window.location.href = '/Identity/Account/Login'; // ログインページへのパス
+                    return;
+                }
+
                 var button = $(this);
                 var countSpan = button.next('.subscription-count');
                 var postId = button.data('post-id');
                 var postReward = parseFloat(button.data('reward')); // Get the reward from the button's data attribute
+                var paymentType = button.data('payment-type');
+                var currentUserId = '@currentUser?.Id'; // 現在のユーザーID
 
-                if (postReward !== 0) {
-                    const stripeAccountStatus = await checkUserHasStripeAccount();
+                var originalText = button.text(); // 元のボタンテキストを保存
+                var spinnerHtml = '<span class="spinner-border spinner-border-sm" text-primary role="status" aria-hidden="true"></span>';
 
-                    if (!stripeAccountStatus.hasStripeAccountId || !stripeAccountStatus.detailsSubmitted) {
-                        var message = stripeAccountStatus.hasStripeAccountId ?
-                            "銀行口座の詳細を完了する必要があります。続行しますか？" :
-                            "報酬を受け取るには銀行口座の登録が必要です。作成しますか？";
+                button.html(spinnerHtml); // ボタンの内容をスピナーに変更
+                button.prop('disabled', true); // ボタンを非活性化
 
-                        var confirmResult = confirm(message);
-                        if (confirmResult) {
-                            $('#loadingSpinner, #loadingOverlay').removeClass('d-none');
-                            setTimeout(() => {
-                                var redirectUrl = stripeAccountStatus.hasStripeAccountId ? '/Stripe/CreateAccountLink' : '/Stripe/CreateAccount';
-                                window.location.href = redirectUrl;
-                            }, 500);
-                        }
+
+                // 参加費が必要な場合
+                if (paymentType == 1 && postReward > 0 && !button.hasClass('liked')) {
+                    var userConfirmation = confirm('応募するには参加費を支払う必要があります。\n採用されない場合は返金されます。\n決済画面へ移動しますか？');
+                    if (userConfirmation) {
+                        // AjaxリクエストでStripeセッションIDを取得
+                        $.ajax({
+                            url: '/Posts/CreateCheckoutSession',
+                            method: 'POST',
+                            data: { userIds: [currentUserId], postId: postId },
+                            success: function (response) {
+                                // Stripeのチェックアウトページへリダイレクト
+                                stripe.redirectToCheckout({
+                                    sessionId: response.sessionId
+                                }).then(function (result) {
+                                    // エラー処理
+                                    alert(result.error.message);
+                                });
+                            }
+                        });
                         return;
                     }
                 }
+                else{
+                    var cancelConfirmation;
+                    if (button.hasClass('liked')){
+                        cancelConfirmation = confirm('すでに応募済みですが、本当に応募を取り消してもよろしいですか？参加費を支払っている場合は返金されません。');
+                    }
+                    if (!button.hasClass('liked') || cancelConfirmation) {
+                        $.ajax({
+                            url: '/Posts/ToggleSubscription',
+                            method: 'POST',
+                            data: { id: postId },
+                            success: function (data) {
+                                // Check if the button has the 'liked' class
+                                if (button.hasClass('liked')) {
+                                    // If the button has the 'liked' class, decrement the count and remove the class
+                                    if (count > 0) {
+                                        countSpan.text(count - 1);
+                                    }
+                                    button.removeClass('liked');
+                                } else {
+                                    // If the button does not have the 'liked' class, increment the count and add the class
+                                    countSpan.text(count + 1);
+                                    button.addClass('liked');
+                                }
+                            },
+                            complete: function () {
+                                button.html(originalText); // 処理完了後、ボタンの内容を元に戻す
+                                button.prop('disabled', false); // ボタンを再び活性化
+                            }
+                        });
+                    }
+                }
+                
                 // Get the current like count
                 var count = parseInt(countSpan.text());
 
-                $.ajax({
-                    url: '/Posts/ToggleSubscription',
-                    method: 'POST',
-                    data: { id: postId },
-                    success: function (data) {
-                        // Check if the button has the 'liked' class
-                        if (button.hasClass('liked')) {
-                            // If the button has the 'liked' class, decrement the count and remove the class
-                            if (count > 0) {
-                                countSpan.text(count - 1);
-                            }
-                            button.removeClass('liked');
-                        } else {
-                            // If the button does not have the 'liked' class, increment the count and add the class
-                            countSpan.text(count + 1);
-                            button.addClass('liked');
-                        }
+                
+            });
+
+            var currentPage = 1;
+            const pageSize = 10;
+
+            $('#loadMoreButton').click(function () {
+                currentPage++;
+                $.get('/Posts/Index', { page: currentPage, pageSize: pageSize, genre: '@ViewData["SelectedGenre"]', prefecture: '@ViewData["CurrentPrefecture"]', searchString: '@ViewData["CurrentSearch"]', fromDateTime: '@ViewData["FromDateTime"]', sortByDateTime: '@ViewData["SortByDateTime"]', isAjax: true }, function (data) {
+                    if (data.trim() === '') {
+                        // これ以上読み込む投稿がない場合
+                        $('#loadMoreButton').hide();
+                    } else {
+                        // 投稿をページに追加
+                        $('#postsContainer').append(data);
                     }
                 });
             });
@@ -623,32 +750,6 @@
         document.getElementById('closeButton').addEventListener('click', function() {
             document.getElementById('filterForm').classList.add('d-none');
         });
-
-        document.getElementById('sendGreetingButton').addEventListener('click', function () {
-            $.ajax({
-                url: '/Posts/SendGreeting',
-                method: 'POST',
-                success: function (data) {
-                    alert('挨拶メールを送信しました！');
-                }
-            });
-        });
-
-        $(document).ready(function () {
-            $('#delete-stripe-account').click(function () {
-                $.ajax({
-                    url: '/Stripe/DeleteStripeAccount',
-                    type: 'POST',
-                    success: function () {
-                        alert('Stripe account successfully deleted');
-                    },
-                    error: function (error) {
-                        console.error('Error while deleting Stripe account', error);
-                    }
-                });
-            });
-        });
-
         
         
     </script>

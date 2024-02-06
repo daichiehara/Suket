@@ -1,0 +1,183 @@
+﻿@model BalanceViewModel
+
+@{
+    ViewData["Title"] = "Wallet";
+    // タイムゾーンの取得（サーバーのタイムゾーンに依存します）
+    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+
+    var bankAccountRegistered = Model.Balance.UserAccount.DetailsSubmitted; // UserAccountモデルから銀行口座登録情報を取得
+}
+
+<head>
+    <style>
+        body {
+            background-color: #f7f7f7;
+        }
+
+        .card {
+            margin-bottom: 15px;
+        }
+
+        .card-header {
+            background-color: #ffffff;
+            font-weight: bold;
+        }
+
+        .list-group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .balance {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .transaction-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .payment {
+            background-color: #FFCC00;
+        }
+
+        .transfer {
+            background-color: #FFCC00;
+        }
+
+        .refund {
+            background-color: #32CD32;
+        }
+
+        .receipt {
+            background-color: #32CD32;
+        }
+
+        .lost {
+            background-color: gray;
+        }
+        .text-payment,
+        .text-transfer,
+        .text-lost{
+            color: #000000;
+        }
+
+        .text-refund,
+        .text-receipt {
+            color: #32CD32;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <!-- 残高カード -->
+        <div class="row pb-3">
+            <!-- 残高カード -->
+            <div class="col-md-9 col-7 pe-0">
+                <div class="card mb-3 h-100 flex-fill">
+                    <div class="card-header">
+                        残高
+                    </div>
+                    <div class="card-body d-flex align-items-center justify-content-center">
+                        <h5 class="balance text-center mb-0">@Model.Balance.Balance 円</h5>
+                    </div>
+                </div>
+            </div>
+            <!-- 銀行口座カード -->
+            <div class="col-md-3 col-5 ps-0">
+                <div class="card mb-3 h-100 flex-fill">
+                    <div class="card-header d-flex align-items-center p-2">
+                        銀行口座
+                        @if (bankAccountRegistered)
+                        {
+                            <p class="text-success mb-0 ms-auto">登録済</p>
+                        }
+                        else
+                        {
+                            <p class="text-danger mb-0 ms-auto">未登録</p>
+                        }
+                    </div>
+                    <div class="card-body d-flex align-items-center justify-content-center p-2">
+                        @if (bankAccountRegistered)
+                        {
+                            <div class="text-center">
+                                <button id="viewTransactionHistory" onclick="location.href='@Url.Action("StripeDashboard", "Stripe")'" class="btn btn-outline-success rounded-pill">ダッシュボード</button>
+                            </div>
+                        }
+                        else
+                        {
+                            if (string.IsNullOrEmpty(Model.Balance.UserAccount.StripeAccountId))
+                            {
+                                <div class="text-center">
+                                    <button onclick="location.href='@Url.Action("CreateAccount", "Stripe")'" class="btn btn-outline-primary rounded-pill">銀行口座の登録</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center">
+                                    <button onclick="location.href='@Url.Action("CreateAccountLink", "Stripe")'" class="btn btn-outline-primary">銀行口座の登録</button>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 取引履歴 -->
+        <div class="card">
+            <div class="card-header">
+                取引履歴
+            </div>
+            <ul class="list-group list-group-flush">
+                @foreach (var transaction in Model.Transactions)
+                {
+                    var typeClass = transaction.Type switch {
+                        TransactionType.Payment => "payment",
+                        TransactionType.Transfer => "transfer",
+                        TransactionType.Refund => "refund",
+                        TransactionType.Receipt => "receipt",
+                        TransactionType.Lost => "lost",
+                        _ => "default-type"
+                    };
+                    var textColorClass = transaction.Type switch {
+                        TransactionType.Payment => "text-payment",
+                        TransactionType.Transfer => "text-transfer",
+                        TransactionType.Refund => "text-refund",
+                        TransactionType.Receipt => "text-receipt",
+                        TransactionType.Lost => "text-lost",
+                        _ => "text-default"
+                    };
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted">
+                                @TimeZoneInfo.ConvertTimeFromUtc(transaction.TransactionDate.UtcDateTime, timeZoneInfo).ToString("yyyy/MM/dd")
+                            </small>
+                            @if (transaction.PostId.HasValue && transaction.Post != null)
+                            {
+                                <div>
+                                    <small class="text-muted">Postからの受け取り</small>
+                                    <br />
+                                    <small class="text-muted">開催日時: @TimeZoneInfo.ConvertTimeFromUtc(transaction.Post.Time.UtcDateTime, timeZoneInfo).ToString("yyyy/MM/dd HH:mm")</small>
+                                </div>
+                            }
+                        </div>
+                        <small class="d-inline-flex px-2 py-1 fw-semibold text-white border border-success-subtle rounded-pill @typeClass">
+                            @transaction.Type.GetDisplayName()
+                        </small>
+                        <div class="fs-5 fw-bold @textColorClass">
+                            @transaction.Amount 円
+                        </div>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</body>

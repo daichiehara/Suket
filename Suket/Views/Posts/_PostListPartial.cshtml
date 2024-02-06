@@ -1,0 +1,179 @@
+﻿@using Microsoft.AspNetCore.Identity;
+@model List<Suket.Models.Post>
+@inject UserManager<UserAccount> userManager;
+@inject SignInManager<UserAccount> signInManager;
+
+@{
+    var currentUser = await userManager.GetUserAsync(User);
+    bool isLoggedIn = signInManager.IsSignedIn(User) && currentUser != null;
+    var isAdmin = false;
+    if (isLoggedIn)
+    {
+        var user = await userManager.GetUserAsync(User);
+        isAdmin = await userManager.IsInRoleAsync(user, "Admin");
+    }
+}
+@foreach (var a in Model)
+{
+
+    var userAdoptionPosts = ViewData["UserAdoptionPosts"] as Dictionary<int, bool>;
+    //var isAdopted = userAdoptionPosts?[a.PostId] ?? false;
+    var isAdopted = userAdoptionPosts?.ContainsKey(a.PostId) == true ? userAdoptionPosts[a.PostId] : false;
+
+    <div class="col mt-2">
+        <div class="card h-100">
+            <div class="card-body">
+                @{
+                    var timeDifference = DateTimeOffset.UtcNow - a.Created;
+                    string timeDifferenceString;
+                    if (timeDifference.TotalDays >= 1)
+                    {
+                        timeDifferenceString = $"{(int)timeDifference.TotalDays}日前";
+                    }
+                    else if (timeDifference.TotalHours >= 1)
+                    {
+                        timeDifferenceString = $"{(int)timeDifference.TotalHours}時間前";
+                    }
+                    else if (timeDifference.TotalMinutes >= 1)
+                    {
+                        timeDifferenceString = $"{(int)timeDifference.TotalMinutes}分前";
+                    }
+                    else
+                    {
+                        timeDifferenceString = "たった今";
+                    }
+                }
+
+                <div class="d-flex flex-wrap">
+                    <p class="card-text post-icon f-14 mb-0 me-2 text-secondary text-truncate lh-1">
+                        <span class="material-symbols-outlined text-secondary me-1 f-14">
+                            calendar_month
+                        </span>
+                        @TimeZoneInfo.ConvertTimeFromUtc(a.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm")
+                    </p>
+
+                    <p class="card-text post-icon f-14 text-secondary text-truncate lh-1">
+                        <span class="material-symbols-outlined text-secondary me-1 f-14">
+                            location_on
+                        </span>
+                        @Html.DisplayFor(modelItem => a.Prefecture)｜@a.Place
+                    </p>
+                </div>
+                <h5 class="card-title mb-1"><a asp-action="Details" asp-route-id="@a.PostId" class="stretched-link">@((a.Title.Length > 30) ? a.Title.Substring(0, 30) + "..." : a.Title)</a><span class="text-secondary" style="font-size:14px;">・@timeDifferenceString</span></h5>
+                <div class="d-flex align-items-center mb-1">
+                    <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName" class="stretched-link" style="position: relative;">
+                        @if (!string.IsNullOrWhiteSpace(a.UserAccount.ProfilePictureUrl))
+                        {
+                            <img src="@a.UserAccount.ProfilePictureUrl" alt="Profile Picture" class="profile-icon" />
+                        }
+                        else
+                        {
+                            <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/kkrn_icon_user_3.png" alt="Profile Picture" class="profile-icon" />
+                        }
+                    </a>
+                    <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@a.UserAccount.UserName" class="card-text profile-link stretched-link" style="position: relative;">@(a.UserAccount.NickName ?? a.UserAccount.UserName)</a>
+                </div>
+
+                <div class="d-flex mb-2">
+                    <div class="card-text d-flex align-items-center">
+                        <span class="material-symbols-outlined text-secondary me-2 @(a.PaymentType == 0 ? "text-warning" : "")">
+                            payments
+                        </span>
+                        <div class="mb-0 d-flex align-items-center">
+                            @if (a.PaymentType == 0)
+                            {
+                                <p class="mb-0">報酬</p>
+                            }
+                            else
+                            {
+                                <p class="mb-0">参加費</p>
+                            }
+                            <p class="mb-0"> : @a.Reward　円</p>
+                        </div>
+                    </div>
+
+                    <p class="card-text post-icon ms-auto">
+                        <span class="material-symbols-outlined text-secondary me-2 fs-5">
+                            sell
+                        </span>@Html.DisplayFor(modelItem => a.Genre)
+                    </p>
+                </div>
+                <pre style="white-space:normal;" class="card-text">@((a.Message.Length > 50) ? a.Message.Substring(0, 50) + "..." : a.Message)</pre>
+                @if ((isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id)) || isAdmin)
+                {
+                    <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
+                }
+                <div class="mt-2" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <button class="subscription-button btn btn-outline-primary rounded-pill stretched-link" style="position: relative;" data-post-id="@a.PostId" data-reward="@a.Reward" data-payment-type="@((int)a.PaymentType)">応募</button>
+                        <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; margin-left:auto;">
+                        @if (isAdopted)
+                        {
+                            <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId" class="btn btn-success stretched-link" style="margin-right:5px; position: relative;">参加確認</a>
+                        }
+                        <span class="material-symbols-outlined pointer stretched-link" style="position: relative;" div data-bs-toggle="modal" data-bs-target="@($"#modal{a.PostId}")">
+                            more_vert
+                        </span>
+                    </div>
+                </div>
+
+
+                <!-- モーダル -->
+                <div class="modal fade" id="@($"modal{a.PostId}")" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel">オプション</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                @if ((isLoggedIn && (currentUser != null && a.UserAccountId == currentUser.Id)) || isAdmin)
+                                {
+                                    var adoptions = ((Dictionary<int, bool>)ViewData["UserAdoptionPosts"]);
+                                    var adoptionExists = adoptions.ContainsKey(a.PostId) && adoptions[a.PostId];
+
+
+                                    <a asp-action="Subscriber" asp-route-id="@a.PostId">
+                                        <div>
+                                            <span class="material-symbols-outlined text-secondary">
+                                                group
+                                            </span>
+                                            <p>採用する・応募者一覧</p>
+                                        </div>
+                                    </a>
+                                    @if (a.State == State.Recruiting)
+                                    {
+                                        <br />
+                                        <a asp-action="Edit" asp-route-id="@a.PostId">
+                                            <div>
+                                                <span class="material-symbols-outlined text-secondary">
+                                                    edit
+                                                </span>
+                                                <p>Edit</p>
+                                            </div>
+                                        </a>
+                                    }
+                                    @if (!adoptionExists || isAdmin)
+                                    {
+                                        <br />
+                                        <a asp-action="Delete" asp-route-id="@a.PostId">
+                                            <div>
+                                                <span class="material-symbols-outlined text-secondary">
+                                                    delete
+                                                </span>
+                                                <p>削除</p>
+                                            </div>
+                                        </a>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

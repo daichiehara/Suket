@@ -1,15 +1,24 @@
 ﻿@using Microsoft.AspNetCore.Identity
+@using Suket.Data
+@using Microsoft.EntityFrameworkCore
 @inject SignInManager<UserAccount> SignInManager
 @inject UserManager<UserAccount> UserManager
+@inject ApplicationDbContext _context
 
 @{
     var isSignedIn = SignInManager.IsSignedIn(User);
     var user = await UserManager.GetUserAsync(User);
     var displayName = user?.NickName ?? User.Identity?.Name;
     var isAdmin = false;
+    var userBalance = 0M; // ユーザーの残高を初期化
     if (isSignedIn)
     {
         isAdmin = await UserManager.IsInRoleAsync(user, "Admin");
+        var userBalanceData = await _context.UserBalance.FirstOrDefaultAsync(ub => ub.Id == user.Id);
+        if (userBalanceData != null)
+        {
+            userBalance = userBalanceData.Balance;
+        }
     }
 }
 
@@ -99,11 +108,6 @@
       }
     }
 
-    /* アクティブなリンクのアイコンの色を変更するCSS */
-    .nav-item .active .material-symbols-outlined {
-        color: blue; /* または希望の色のHEXコード */
-    }
-
     .nav-li {
         display: flex;
         align-items: center; /* 縦方向の中央揃え */
@@ -112,6 +116,7 @@
 
     .icon-right{
         margin-right: 15px;
+        margin-left:10px;
     }
 
     .nav-link {
@@ -122,16 +127,60 @@
 
     .layout-profile-icon {
         margin-right: 15px;
-        width: 24px;
-        height: 24px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
     }
 
+    a.active {
+        background-color: #F0F8FF; /* 背景色 */
+        color: #007bff; /* テキストの色 */
+        font-weight: bold;
+        border-radius: 5px; /* 角丸の効果 */
+    }
+
+
+        /* オプションで、アクティブなリンクに対して追加のスタイルを適用 */
+        a.active span{
+            color: #007bff; /* アイコンの色 */
+            font-weight:bold;
+        }
+
+    a.active p{
+        color: #007bff;
+    }
+
+    /* 選択されたナビゲーションアイテムのスタイル */
+    .navbar-nav .nav-item .active {
+        position: relative;
+    }
+
+        .navbar-nav .nav-item .active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%; /* 中央に配置するために左から50%の位置に設定 */
+            transform: translateX(-50%); /* X軸に沿って左に50%移動させて、真ん中に来るように調整 */
+            height: 3px; /* 青い線の高さ */
+            width: 50%; /* 青い線の幅 */
+            background-color: #007bff; /* 青い線の色 */
+        }
+
 </style>
-<html lang="en">
+<html lang="ja">
 <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-X31468VJLZ"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-X31468VJLZ');
+    </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name='viewport' content='initial-scale=1, viewport-fit=cover'>
     <title>@ViewData["Title"] - Mint SPORTS</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -156,21 +205,27 @@
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between" id="navbarNavDarkDropdown">
                     <ul class="navbar-nav flex-grow-1">
                         @if (isSignedIn)
                         {
                             <li class="nav-item nav-li d-md-none">
-                                @if (!string.IsNullOrWhiteSpace(user.ProfilePictureUrl))
-                                {
-                                    <span><img src="@user.ProfilePictureUrl" alt="Profile Picture" class="layout-profile-icon" /></span>
-                                }
-                                else
-                                {
-                                    <span><img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/Spork_Logo.jpg" alt="Profile Picture" class="layout-profile-icon" /></span>
-                                }
-                                <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">@displayName</a>
+                                <a class="d-flex align-items-center text-decoration-none" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">
+                                    @if (!string.IsNullOrWhiteSpace(user.ProfilePictureUrl))
+                                    {
+                                        <span><img src="@user.ProfilePictureUrl" alt="Profile Picture" class="layout-profile-icon" /></span>
+                                    }
+                                    else
+                                    {
+                                        <span><img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/kkrn_icon_user_3.png" alt="Profile Picture" class="layout-profile-icon" /></span>
+                                    }
+                                    <p class="nav-link text-dark fw-bold fs-3 mb-0">@displayName</p>
+                                </a>
                             </li>
+                            <li class="nav-item nav-li d-md-none">
+                                <p class="text-secondary mb-0 icon-right">残高 : @userBalance 円</p>
+                            </li>
+                            <li><hr /></li>
                         }
                         <li class="nav-item nav-li">
                             <span class="material-symbols-outlined d-md-none icon-right">
@@ -185,6 +240,7 @@
                         </li>
                         @if (isSignedIn)
                         {
+                            <!--
                             <li class="nav-item nav-li">
                                 <span class="material-symbols-outlined d-md-none icon-right">
                                     <span class="material-symbols-outlined">
@@ -198,6 +254,7 @@
                                     <p class="hedp">My List</p>
                                 </a>
                             </li>
+                                            
                             <li class="nav-item nav-li">
                                 <span class="material-symbols-outlined d-md-none icon-right">
                                     article
@@ -209,8 +266,33 @@
                                     <p class="hedp">My Post</p>
                                 </a>
                             </li>
+                            -->
+                            <li class="nav-item nav-li">
+                                <span class="material-symbols-outlined d-md-none icon-right">
+                                    <span class="material-symbols-outlined">
+                                        sentiment_satisfied
+                                    </span>
+                                </span>
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Posts" asp-action="MyDashboard">
+                                    <span class="material-symbols-outlined d-none d-md-block text-center">
+                                        sentiment_satisfied
+                                    </span>
+                                    <p class="hedp">My Post</p>
+                                </a>
+                            </li>
                             <li class="nav-item nav-li-bt">
                                 <a class="nav-link text-white btn btn-primary" asp-area="" asp-controller="Posts" asp-action="Create" style="margin-left:10px; margin-right:10px;">Create Post</a>
+                            </li>
+                            <li class="nav-item nav-li">
+                                <span class="material-symbols-outlined d-md-none icon-right">
+                                    account_balance_wallet
+                                </span>
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Users" asp-action="Balance">
+                                    <span class="material-symbols-outlined d-none d-md-block text-center">
+                                        account_balance_wallet
+                                    </span>
+                                    <p class="hedp">Wallet</p>
+                                </a>
                             </li>
                             <li class="nav-item nav-li">
                                 <span class="material-symbols-outlined d-md-none icon-right">
@@ -238,9 +320,28 @@
                                 <span class="material-symbols-outlined d-none d-md-block text-center">
                                     menu_book
                                 </span>
-                                <p class="hedp">Guide</p>
+                                <p class="hedp">使い方</p>
                             </a>
                         </li>
+                        
+                        <li class="nav-item nav-li dropdown d-md-none">
+                            <button class="btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                Support
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" asp-controller="Home" asp-action="Tos">利用規約</a></li>
+                                <li><a class="dropdown-item" asp-controller="Home" asp-action="Tokutei">特定商取引に基づく表記</a></li>
+                                <li><a class="dropdown-item" asp-controller="Home" asp-action="Privacy">プライバシーポリシー</a></li>
+                                <li><a class="dropdown-item" asp-controller="Contacts" asp-action="Create">お問い合わせ</a></li>
+                                <li class="d-flex align-items-center">
+                                    <p class="mb-0 ms-3">from</p>
+                                    <a class="navbar-brand ff-title" style="color: #5985E1; margin-left:20px;" href="https://roadmint.co.jp">
+                                        <img src="~/img/roadmint_yoko.png" width="120" height="80">
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        
                     </ul>
                     <partial name="_LoginPartial" />
                 </div>
@@ -248,42 +349,72 @@
         </nav>
     </header>
 
-    <div id="main" class="container main-top">
-        <main role="main" class="pb-3">
+    <div id="main" class="container main-top pb-5">
+        <main role="main">
             @RenderBody()
         </main>
     </div>
 
-    @if (isSignedIn)
+    @if (isSignedIn && !(ViewData["HideNavbar"] as bool? ?? false))
     {
-        <div class="d-md-none navbar navbar-expand-lg navbar-light bg-light fixed-bottom border-top p-0">
+
+        <div class="d-md-none navbar navbar-expand-lg navbar-light bg-light fixed-bottom border-top pt-0" style="padding-bottom: env(safe-area-inset-bottom); box-shadow:0 0 5px rgba(0,0,0,0.1);">
             <ul class="navbar-nav nav-justified w-100 d-flex flex-row mb-1">
-                <!-- フレックスユーティリティクラスを追加 -->
-                <li class="nav-item flex-fill text-center">
-                    <!-- flex-fill と text-center を追加 -->
+                
+                <li class="nav-item flex-fill text-center lh-1">
+                    
                     <a class="nav-link p-0 @await Component.InvokeAsync("ActiveLink", new { controller = "Posts", action = "Index" })" asp-controller="Posts" asp-action="Index">
-                        <span class="material-symbols-outlined lh-1 mt-2">
+                        <span class="material-symbols-outlined mt-2">
                             home
                         </span>
-                        <p class="lh-1 mb-1 fw-bold" style="font-size:10px;">Home</p>
+                        <p class="mb-1 fw-bold" style="font-size:10px;">Home</p>
                     </a>
                 </li>
-                <li class="nav-item flex-fill text-center">
-                    <!-- flex-fill と text-center を追加 -->
+                <!--
+                <li class="nav-item flex-fill text-center lh-1">
+                    
                     <a class="nav-link p-0 @await Component.InvokeAsync("ActiveLink", new { controller = "Posts", action = "MySubscribedPosts" })" asp-controller="Posts" asp-action="MySubscribedPosts">
-                        <span class="material-symbols-outlined lh-1 mt-2">
+                        <span class="material-symbols-outlined mt-2">
                             sentiment_satisfied
                         </span>
-                        <p class="lh-1 mb-1 fw-bold" style="font-size:10px;">My List</p>
+                        <p class="mb-1 fw-bold" style="font-size:10px;">My List</p>
                     </a>
                 </li>
-                <li class="nav-item flex-fill text-center">
-                    <!-- flex-fill と text-center を追加 -->
+                <li class="nav-item flex-fill text-center lh-1">
+                    
                     <a class="nav-link p-0 @await Component.InvokeAsync("ActiveLink", new { controller = "Posts", action = "MyPosts" })" asp-controller="Posts" asp-action="MyPosts">
-                        <span class="material-symbols-outlined lh-1 mt-2">
+                        <span class="material-symbols-outlined mt-2">
                             article
                         </span>
-                        <p class="lh-1 mb-1 mt-0 fw-bold" style="font-size:10px;">My Post</p>
+                        <p class="mb-1 mt-0 fw-bold" style="font-size:10px;">My Post</p>
+                    </a>
+                </li>
+                -->
+                <li class="nav-item flex-fill text-center lh-1">
+
+                    <a class="nav-link p-0" asp-controller="Posts" asp-action="MyDashboard" data-target="mydashboard">
+                        <span class="material-symbols-outlined mt-2">
+                            sentiment_satisfied
+                        </span>
+                        <p class="mb-1 fw-bold" style="font-size:10px;">My Post</p>
+                    </a>
+                </li>
+                <li class="nav-item flex-fill text-center lh-1">
+                    
+                    <a class="nav-link p-0 @await Component.InvokeAsync("ActiveLink", new { controller = "Users", action = "Balance" })" asp-controller="Users" asp-action="Balance">
+                        <span class="material-symbols-outlined mt-2">
+                            account_balance_wallet
+                        </span>
+                        <p class="mb-1 mt-0 fw-bold" style="font-size:10px;">Wallet</p>
+                    </a>
+                </li>
+                <li class="nav-item flex-fill text-center lh-1">
+
+                    <a class="nav-link p-0 @await Component.InvokeAsync("ActiveLink", new { pagePaths = new string[] { "/Account/Manage/Index", "/Account/Manage/Email", "/Account/Manage/ChangePassword", "/Account/Manage/Earnings", "/Account/Manage/PersonalData"  } })" asp-area="Identity" asp-page="/Account/Manage/Index">
+                        <span class="material-symbols-outlined mt-2">
+                            person
+                        </span>
+                        <p class="mb-1 mt-0 fw-bold" style="font-size:10px;">Profile</p>
                     </a>
                 </li>
             </ul>
@@ -291,7 +422,7 @@
     }
     
 
-    <footer class="border-top footer text-muted">
+    <footer class="border-top footer text-muted d-none d-md-block">
         <div class="container">
             <div class="row">
                 <!-- About section -->
@@ -357,5 +488,21 @@
         $(window).scroll(function () {
             ScrollAnime();//スクロール途中でヘッダーが消え、上にスクロールすると復活する関数を呼ぶ
         });
+
+        $(document).ready(function () {
+            var currentPath = window.location.pathname.toLowerCase();
+
+            $('.navbar-nav .nav-link').each(function () {
+                var linkPath = $(this).attr('href').toLowerCase();
+
+                // URLが部分的に一致するかどうかをチェック
+                if (currentPath.indexOf(linkPath) !== -1) {
+                    $(this).addClass('active');
+                } else {
+                    $(this).removeClass('active');
+                }
+            });
+        });
+
     </script>
 }

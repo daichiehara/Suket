@@ -128,10 +128,13 @@
 ===================
 
 こちらから詳細をご確認ください。
-https://mintsports.net/Posts/MySubscribedPosts
+&lt;a href="https://mintsports.net/Posts/MyDashboard"&gt;https://mintsports.net/Posts/MyDashboard&lt;/a&gt;
 
 こちらから募集者に対してコメントや質問ができます。
-https://mintsports.net/Posts/Details/{3}
+&lt;a href="https://mintsports.net/Posts/Details/{3}"&gt;https://mintsports.net/Posts/Details/{3}&lt;/a&gt;
+
+こちらから参加までの流れを確認できます。
+&lt;a href="https://mintsports.net/Home/Guide"&gt;https://mintsports.net/Home/Guide&lt;/a&gt;
 
 Mint SPORTSサポートチーム</value>
   </data>

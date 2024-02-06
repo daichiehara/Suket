@@ -1,31 +1,58 @@
 ﻿@using Microsoft.AspNetCore.Identity;
 @model Suket.Models.Post
 @inject UserManager<UserAccount> userManager;
-
+@using System.ComponentModel.DataAnnotations
 
 @{
     ViewData["Title"] = "Create";
 
     var currentUser = await userManager.GetUserAsync(User);
 }
+
 <head>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-    <style>
-        .header-container {
-            display: flex;
-            align-items: center; /* 縦方向の中央揃え */
-            justify-content: flex-start; /* アイテムを左側に寄せる */
-            margin-bottom:10px;
-        }
-
-            .header-container .back-arrow {
-                margin-right: 20px; /* アイコンとテキストの間に少しスペースを設ける */
-            }
-    </style>
 </head>
+<style>
+    .multi-way-choice {
+        display: flex;
+        overflow: hidden;
+    }
+    .multi-way-choice input {
+        position: absolute !important;
+        clip: rect(0, 0, 0, 0);
+        height: 1px;
+        width: 1px;
+        border: 0;
+        overflow: hidden;
+    }
+    .multi-way-choice label {
+        background-color: #f0f0f0;
+        color: #999;
+        text-align: center;
+        font-size: 17px;
+        line-height: 1;
+        padding: 9px 18px;
+        margin-right: -1px;
+        border: 1px solid rgba(0, 0, 0, 0.4);
+        transition: all 0.2s ease-in;
+    }
+    .multi-way-choice label:hover {
+        cursor: pointer;
+    }
+    .multi-way-choice input:checked + label {
+        background-color: #6af;
+        color: #222;
+    }
+    .multi-way-choice label:first-of-type {
+        border-radius: 5px 0 0 5px;
+    }
+    .multi-way-choice label:last-of-type {
+        border-radius: 0 5px 5px 0;
+    }
 
+</style>
 <div class="header-container">
-    <span class="back-arrow btn-primary" onclick="history.back()" title="back">
+    <span class="back-arrow btn-primary me-2" onclick="goBackOrHome()" title="back">
         <span class="material-symbols-outlined">
             arrow_back
         </span>
@@ -76,29 +103,89 @@
                 <input asp-for="Item" class="form-control" placeholder="例)スパイク,ユニフォーム(なんでもよい),etc..." />
                 <span asp-validation-for="Item" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Reward" class="control-label"></label>（円）
-                <input asp-for="Reward" class="form-control" />
-                <span asp-validation-for="Reward" class="text-danger"></span>
+            <div class="row">
+                <!-- PaymentType 選択肢 -->
+                <div class="col-6">
+                    <div class="form-group mt-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <label asp-for="PaymentType" class="control-label"></label>
+                            <span style="cursor:pointer;" class="material-symbols-outlined ms-2 text-secondary" data-bs-toggle="modal" data-bs-target="#rewardHelpModal">
+                                help
+                            </span>
+                        </div>
+                        <div class="multi-way-choice">
+                            @foreach (var option in Html.GetEnumSelectList<PaymentType>())
+                            {
+                                <input type="radio" id="PaymentType_@option.Value" name="PaymentType"
+                                   value="@option.Value"
+                                   @((option.Value == "1") ? "checked" : "") />
+                                <label for="PaymentType_@option.Value">@option.Text</label>
+                            }
+                            <span asp-validation-for="PaymentType" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reward 入力フィールド -->
+                <div class="col-6 mt-3">
+                    <div class="form-group">
+                        <label asp-for="Reward" class="control-label mb-2">金額</label>（円）
+                        <div class="d-flex align-items-center">
+                            <input asp-for="Reward" class="form-control" />
+                            <p class="mb-0 ms-2">円</p>
+                        </div>
+
+                        <span asp-validation-for="Reward" class="text-danger"></span>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
+
+            <div class="form-group mt-2">
                 <label asp-for="Message" class="control-label"></label>
                 <textarea asp-for="Message" class="form-control" rows="5" placeholder="例)メンバーが9人で、交代も考えたいので1人募集します。現地集合現地解散でお願いします。開催時刻は9時なので8時30分頃集合でお願いします。当日は一緒に頑張りましょう！"></textarea>
                 <span asp-validation-for="Message" class="text-danger"></span>
             </div>
-            <div class="form-group">
+            <div class="form-group mt-2">
                 <label asp-for="Genre" class="control-label"></label>
                 <select asp-for="Genre" asp-items="Html.GetEnumSelectList(typeof (Genre))"></select>
                 <span asp-validation-for="Genre" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
+            <div class="form-group mt-3">
+                <input type="submit" value="Create" class="btn btn-primary rounded-pill w-100" />
             </div>
 
             <input type="hidden" asp-for="@Model.UserAccountId" value="@currentUser.Id" />
         </form>
     </div>
 </div>
+
+<!-- モーダル -->
+<div class="modal fade" id="rewardHelpModal" tabindex="-1" aria-labelledby="rewardHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rewardHelpModalLabel">支払い方式について</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- ここに報酬に関する説明文を記述 -->
+                <h5 class="text-primary">参加費</h5>
+                採用者が応募の際に参加費の支払いを行います。<br /><br />
+                参加費は、採用者のイベント参加が確認されたら送金されます。<br /><br />
+                <h5 class="text-primary">報酬</h5>
+                応募者を採用する際に報酬の支払いを行います。<br /><br />
+                報酬は、採用者のイベント参加が確認されたら送金されます。<br /><br />
+                採用者が当日来ないなど、参加が確認できなければ報酬金額は返金されます。
+                <hr />
+                参加費や報酬を無料で行う場合は金額に0と入力してください。
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Display error messages -->
 @if (ViewData["Errors"] != null)
 {

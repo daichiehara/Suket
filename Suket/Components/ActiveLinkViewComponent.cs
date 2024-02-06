@@ -4,7 +4,7 @@ namespace Suket.Components
 {
     public class ActiveLinkViewComponent : ViewComponent
     {
-        public IViewComponentResult Invoke(string controller = null, string action = null, string pagePath = null)
+        public IViewComponentResult Invoke(string controller = null, string action = null, string[] pagePaths = null)
         {
             var activeClass = "";
             var routeValues = ViewContext.RouteData.Values;
@@ -18,17 +18,17 @@ namespace Suket.Components
                 if (string.Equals(controller, currentController, StringComparison.OrdinalIgnoreCase) &&
                     string.Equals(action, currentAction, StringComparison.OrdinalIgnoreCase))
                 {
-                    activeClass = "text-primary";
+                    activeClass = "active";
                 }
             }
             // ページパスが指定されている場合
-            else if (!string.IsNullOrEmpty(pagePath))
+            else if (pagePaths != null && pagePaths.Any())
             {
+                // 複数のページパスが指定されている場合
                 var currentPagePath = routeValues.ContainsKey("page") ? routeValues["page"].ToString() : string.Empty;
-
-                if (string.Equals(pagePath, currentPagePath, StringComparison.OrdinalIgnoreCase))
+                if (pagePaths.Any(path => string.Equals(path, currentPagePath, StringComparison.OrdinalIgnoreCase)))
                 {
-                    activeClass = "text-primary";
+                    activeClass = "active";
                 }
             }
 

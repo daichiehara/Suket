@@ -34,3 +34,11 @@ $(window).scroll(function () {
 $(window).on('load', function () {
     ScrollAnime();//スクロール途中でヘッダーが消え、上にスクロールすると復活する関数を呼ぶ
 });
+
+function goBackOrHome() {
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.location.href = 'https://mintsports.net/Home/Index'; // ハードコードされたURL
+    }
+}

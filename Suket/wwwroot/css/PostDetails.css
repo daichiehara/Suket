@@ -3,10 +3,12 @@
 
 .subscription-button.liked {
     background-color: red;
+    color:black;
 }
 
 .subscription-button.liked-adopted {
     background-color: yellow;
+    color:black;
 }
 
 .bg-yellow {

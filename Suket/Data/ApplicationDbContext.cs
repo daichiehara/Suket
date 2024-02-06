@@ -48,6 +48,12 @@ namespace Suket.Data
                 .WithMany(u => u.ReviewsReceived)
                 .HasForeignKey(r => r.ReviewedId)
                 .OnDelete(DeleteBehavior.Restrict); // Restrict to prevent cascading delete
+
+            // UserAccount と UserBalance の一対一の関連性を設定
+            modelBuilder.Entity<UserAccount>()
+                .HasOne(ua => ua.UserBalance) // UserAccount には UserBalance が一つある
+                .WithOne(ub => ub.UserAccount) // UserBalance には UserAccount が一つある
+                .HasForeignKey<UserBalance>(ub => ub.Id); // UserBalance の Id が外部キー
         }
 
         public DbSet<Suket.Models.Reply>? Reply { get; set; }
@@ -59,6 +65,10 @@ namespace Suket.Data
         public DbSet<Suket.Models.PaymentRecord>? PaymentRecord { get; set; }
 
         public DbSet<Suket.Models.Contact>? Contact { get; set; }
+
+        public DbSet<Suket.Models.UserBalance>? UserBalance { get; set; }
+
+        public DbSet<Suket.Models.TransactionRecord>? TransactionRecord { get; set; }
 
     }
 }

@@ -6,25 +6,55 @@
     var currentUser = await userManager.GetUserAsync(User);
 }
 
-<h2 class="text-primary">参加確認・認証</h2>
-<p>募集者から認証コードを聞いて入力しよう！</p>
-<p>当日参加したことを確認するための認証です。認証されないと報酬は受け取れません。</p>
-<hr />
-<p>タイトル： @ViewData["PostTitle"]</p>
-<p>開催場所：@ViewData["PostPlace"]</p>
-<p>募集者：<a asp-controller="Users" asp-action="Profile" asp-route-UserName=@ViewData["PostUserName"]>@ViewData["PostDisplayName"]</a></p>
-<hr />
-<form asp-action="VerifyAttendance" asp-controller="RollCalls" method="post">
-    <input type="hidden" asp-for="@Model.PostId" value="@ViewData["PostId"]" />
-    <input type="hidden" asp-for="@Model.UserAccountId" value="@currentUser.Id" />
-
-    <div class="form-group">
-        <label asp-for="CertificationCode"></label>
-        <input type="number" asp-for="CertificationCode" class="form-control" placeholder="数字4桁を入力..." required />
-        <span asp-validation-for="CertificationCode" class="text-danger"></span>
+<div class="row">
+    <div class="col-md-3"></div>
+    <div class="header-container col-md-6">
+        <span class="back-arrow btn-primary" onclick="goBackOrHome()" title="back">
+            <span class="material-symbols-outlined">
+                arrow_back
+            </span>
+        </span>
+        <h2 class="text-primary ms-2 mb-0">参加確認・認証</h2>
     </div>
+    <div class="col-md-3"></div>
+</div>
+<div class="row">
+    <div class="col-md-3"></div>
+    <div class="col-md-6">
+        <p>募集者から認証コードを聞いて入力しよう！</p>
+        <p>当日参加したことを確認するための認証です。認証されないと報酬は受け取れません。</p>
+        <hr />
+        <div class="d-flex flex-wrap">
+            <p class="mb-0 me-2 text-secondary text-truncate d-flex align-items-center">
+                <span class="material-symbols-outlined text-secondary me-1">
+                    calendar_month
+                </span>
+                <span>@ViewData["PostTime"]</span>
+            </p>
 
-    <button type="submit" class="btn btn-primary">送信</button>
-</form>
+            <p class="mb-0 text-secondary text-truncate d-flex align-items-center">
+                <span class="material-symbols-outlined text-secondary me-1">
+                    location_on
+                </span>
+                <span>@ViewData["PostPlace"]</span>
+            </p>
+        </div>
+        <p>募集者：<a asp-controller="Users" asp-action="Profile" asp-route-UserName=@ViewData["PostUserName"]>@ViewData["PostDisplayName"]</a></p>
+        <hr />
+        <form asp-action="VerifyAttendance" asp-controller="RollCalls" method="post">
+            <input type="hidden" asp-for="@Model.PostId" value="@ViewData["PostId"]" />
+            <input type="hidden" asp-for="@Model.UserAccountId" value="@currentUser.Id" />
 
-<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group mb-3">
+                <label asp-for="CertificationCode" class="fw-bold"></label>
+                <input type="number" asp-for="CertificationCode" class="form-control" placeholder="数字4桁を入力..." required />
+                <span asp-validation-for="CertificationCode" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary rounded-pill w-100">送信</button>
+        </form>
+
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    </div>
+    <div class="col-md-3"></div>
+</div>

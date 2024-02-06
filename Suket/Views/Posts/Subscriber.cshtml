@@ -22,32 +22,19 @@
     <!-- Add this to the <head> section of your page or layout -->
     <script src="https://js.stripe.com/v3/"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+    <style>
+        .s-profile-icon {
+            margin-right: 8px;
+            margin-left: 10px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+    </style>
 </head>
 
-<style>
-.back-arrow {
-    display: inline-block;
-    width: 40px;
-    height: 40px;
-    background-color: blue;
-    border-radius: 50%; /* 丸い形にする */
-    color: white; /* アイコンの色を白にする */
-    text-align: center;
-    line-height: 40px; /* アイコンを中央に配置 */
-    cursor: pointer; /* マウスオーバー時にポインターを表示 */
-}
-.back-arrow .material-symbols-outlined {
-    vertical-align: middle; /* アイコンを垂直方向に中央に配置 */
-}
-</style>
-
 <body>
-    <span class="back-arrow" onclick="history.back()" title="back">
-        <span class="material-symbols-outlined">
-            arrow_back
-        </span>
-    </span>
-
 @if (postState == State.End)
 {
     <div class="alert alert-warning mt-3">
@@ -69,23 +56,44 @@ else if (isPastPostTime)
 
 <div class="container">
     <div class="list">
-    <h2>応募者一覧</h2>
-        <ul id="applicant-list" data-post-id="@ViewData["PostId"]">
-        @foreach (var user in Model.Applicants)
-        {
-            bool isAdopted = Model.Adoptees.Any(a => a.Id == user.Id);
-            <li data-user-id="@user.Id">
-                @if (!isAdopted && !isPastPostTime) // 現在の時間がpostのtimeより前の場合のみ表示
+        <div class="header-container">
+            <span class="back-arrow btn-primary me-2" onclick="goBackOrHome()" title="back">
+                <span class="material-symbols-outlined">
+                    arrow_back
+                </span>
+            </span>
+            <h3 class="mb-0">応募者一覧</h3>
+        </div>
+        <ul id="applicant-list" data-post-id="@ViewData["PostId"]" style="list-style:none;">
+            @foreach (var user in Model.Applicants)
             {
-                <input type="checkbox" class="select-user" data-user-id="@user.Id" data-post-id="@ViewData["PostId"]">
+                bool isAdopted = Model.Adoptees.Any(a => a.Id == user.Id);
+                <li data-user-id="@user.Id">
+                    <div class="d-flex align-items-center">
+                        @if (!isAdopted && !isPastPostTime && postState != State.Cancel) // 現在の時間がpostのtimeより前の場合のみ表示
+                        {
+                            <input type="checkbox" class="select-user" data-user-id="@user.Id" data-post-id="@ViewData["PostId"]">
+                        }
+                        <div style="display: flex; align-items: center;">
+                            <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@user.UserName">
+                                @if (!string.IsNullOrWhiteSpace(user.ProfilePictureUrl))
+                                {
+                                    <img src="@user.ProfilePictureUrl" alt="Profile Picture" class="s-profile-icon" />
+                                }
+                                else
+                                {
+                                        <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/kkrn_icon_user_3.png" alt="Profile Picture" class="s-profile-icon" />
+                                }
+                            </a>
+                            <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@user.UserName" class="text-decoration-none text-black">@(user.NickName ?? user.UserName)</a>
+                        </div>
+                    </div>
+                </li>
             }
-                <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@user.UserName">@(user.NickName ?? user.UserName)</a>
-            </li>
-        }
-    </ul>
-        @if (isLoggedIn && (ViewData["PostUserId"].ToString() == currentUser.Id) && !isPastPostTime) // 現在の時間がpostのtimeより前の場合のみ表示
+        </ul>
+        @if (isLoggedIn && (ViewData["PostUserId"].ToString() == currentUser.Id) && !isPastPostTime && postState != State.Cancel) // 現在の時間がpostのtimeより前の場合のみ表示
         {
-            <button id="adopt-selected-users" class="btn btn-primary">選択したユーザーを採用</button>
+            <button id="adopt-selected-users" class="btn btn-primary">選択したユーザーを<br />採用</button>
             <br />
         }
 
@@ -99,12 +107,24 @@ else if (isPastPostTime)
 
 
     <div class="list">
-        <h2>採用者一覧</h2>
-        <ul id="adopted-list">
+        <h3 class ="mb-2 pt-2 ms-4">採用者一覧</h3>
+        <ul id="adopted-list" style="list-style:none;">
             @foreach (var user in Model.Adoptees)
             {
                 <li data-user-id="@user.Id">
-                    @(user.NickName ?? user.UserName)
+                    <div style="display: flex; align-items: center;">
+                        <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@user.UserName">
+                            @if (!string.IsNullOrWhiteSpace(user.ProfilePictureUrl))
+                            {
+                                <img src="@user.ProfilePictureUrl" alt="Profile Picture" class="s-profile-icon" />
+                            }
+                            else
+                            {
+                                    <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/kkrn_icon_user_3.png" alt="Profile Picture" class="s-profile-icon" />
+                            }
+                        </a>
+                        <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@user.UserName" class="text-decoration-none text-black">@(user.NickName ?? user.UserName)</a>
+                    </div>
                 </li>
             }
         </ul>
@@ -131,6 +151,8 @@ else if (isPastPostTime)
 
                 var postId = $('#applicant-list').data('post-id');
 
+                var postPaymentType = '@ViewData["PostPaymentType"]';
+
                 // Step 1: Check the reward and decide the flow
                 var response = await $.ajax({
                     url: '/Posts/CreateCheckoutSession',
@@ -138,7 +160,7 @@ else if (isPastPostTime)
                     data: { userIds: userIds, postId: postId }
                 });
 
-                if (response.reward === 0) {
+                if (response.reward === 0 || postPaymentType === 'FeeFromParticipant') {
                     // If reward is 0, directly adopt the users
                     $.ajax({
                         url: '/Posts/Adopt',
@@ -156,7 +178,9 @@ else if (isPastPostTime)
                     });
                 } else {
                     // If there's a reward, proceed with the payment flow
-                    var stripe = Stripe('pk_live_51NOazSCtzLwFlO8aKGf5T9MUhsZ61B6YXYbEfBGJ89WBRWGS9lneiOXIttpzPYPwmdataTumrLyLQO1OhCAQ2nFv00lMQJMfsa');  // Replace with your Stripe public key
+                    //test
+                    var stripe = Stripe('pk_test_51NOazSCtzLwFlO8auPQ8fbTs7g3XUGuacXM4ww3cHUQhs4n2wEggHp7IJO4LHN7nKufFIrwEa2SGTO3kavmOat4u00FGyurm7u');
+                    //var stripe = Stripe('pk_live_51NOazSCtzLwFlO8aKGf5T9MUhsZ61B6YXYbEfBGJ89WBRWGS9lneiOXIttpzPYPwmdataTumrLyLQO1OhCAQ2nFv00lMQJMfsa');  // Replace with your Stripe public key
                     stripe.redirectToCheckout({
                         sessionId: response.sessionId
                     }).then(function (result) {

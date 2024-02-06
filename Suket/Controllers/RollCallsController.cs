@@ -170,6 +170,7 @@ namespace Suket.Controllers
         [Authorize]
         public async Task<IActionResult> VerifyAttendance(int id)
         {
+            ViewData["HideNavbar"] = true; // navbarを非表示にする
             var post = _context.Post.FirstOrDefault(p => p.PostId == id);
             if (post != null)
             {
@@ -191,7 +192,8 @@ namespace Suket.Controllers
                 ViewData["PostId"] = id;
                 ViewData["PostUserName"] = post.UserAccount.UserName;
                 ViewData["PostDisplayName"] = displayName;
-                ViewData["PostTitle"] = post.Title;
+                // TimeZoneInfoを使用してローカルタイムゾーンに変換
+                ViewData["PostTime"] = TimeZoneInfo.ConvertTimeFromUtc(post.Time.UtcDateTime, TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time")).ToString("yyyy/MM/dd HH:mm");
                 ViewData["PostPlace"] = post.Place;
             }
 
@@ -217,7 +219,7 @@ namespace Suket.Controllers
                     ModelState.AddModelError("CertificationCode", "認証コードが違います。再度コードを確認してください。");
                     
                     ViewData["PostId"] = postId;
-                    ViewData["PostTitle"] = post.Title;
+                    ViewData["PostTime"] = post.Time;
                     ViewData["PostPlace"] = post.Place;
 
                     return View(new VerifyAttendanceViewModel { PostId = postId, UserAccountId = userAccountId }); // Pass a new RollCall as the model
@@ -254,6 +256,7 @@ namespace Suket.Controllers
         [Authorize]
         public IActionResult AttendanceConfirmed()
         {
+            ViewData["HideNavbar"] = true; // navbarを非表示にする
             return View();
         }
 

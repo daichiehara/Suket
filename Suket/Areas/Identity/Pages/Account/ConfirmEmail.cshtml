@@ -6,3 +6,14 @@
 
 <h1>@ViewData["Title"]</h1>
 <partial name="_StatusMessage" model="Model.StatusMessage" />
+
+@if (Model.EmailConfirmationSuccessful)
+{
+        <p>メールアドレスの確認が取れました！<br />次はプロフィールを完成させましょう！</p>
+        <a class="btn btn-outline-primary text-center" asp-area="Identity" asp-page="/Account/Manage/Index">Go to Profile</a>
+}
+else
+{
+    <p>メールの確認中にエラーが発生しました。<br />再度メールアドレスを確認してください。</p>
+    <a id="resend-confirmation" class="btn btn-outline-secondary text-center" asp-page="./ResendEmailConfirmation">確認メールを再送信</a>
+}

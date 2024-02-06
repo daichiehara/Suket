@@ -34,16 +34,19 @@ namespace Suket.Controllers
 
         public IActionResult Privacy()
         {
+            ViewData["HideNavbar"] = true; // navbarを非表示にする
             return View();
         }
 
         public IActionResult Tokutei()
         {
+            ViewData["HideNavbar"] = true; // navbarを非表示にする
             return View();
         }
 
         public IActionResult Tos()
         {
+            ViewData["HideNavbar"] = true; // navbarを非表示にする
             return View();
         }
 
@@ -54,6 +57,7 @@ namespace Suket.Controllers
 
         public IActionResult Guide()
         {
+            ViewData["HideNavbar"] = true; // navbarを非表示にする
             return View();
         }
 

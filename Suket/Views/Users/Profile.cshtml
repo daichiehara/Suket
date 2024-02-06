@@ -1,37 +1,181 @@
-﻿@model Suket.Models.UserAccount
+﻿@using Microsoft.AspNetCore.Identity;
+@model Suket.Models.UserAccount
 @using Suket.Extensions
+@inject UserManager<UserAccount> userManager;
 
 @{
-    ViewData["Title"] = "User Profile";
-
     var displayname = Model.NickName ?? Model.UserName;
     var today = DateOnly.FromDateTime(DateTime.Today);
     var age = today.Year - Model.Birthday.Year;
     if (Model.Birthday.AddDays(age) > today) age--;
+
+    ViewData["Title"] = $"{displayname}のプロフィール";
+    string? description = !string.IsNullOrWhiteSpace(Model.Profile) ? Model.Profile : $"{displayname}のプロフィール。ミントスポーツは「明日試合に出れる」マッチングプラットフォームです。メンバーを募集しているチームに応募してスポーツを楽しみましょう。";
+
+    var currentUser = await userManager.GetUserAsync(User);
+
+    string url = $"https://mintsports.net/Users/{Model.UserName}";
 }
 <head>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <meta name=”description” content=@description />
+
+    <!-- OGPの設定 -->
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="@ViewData["Title"]" />
+    <meta property="og:description" content="ミントスポーツは「明日試合に出れる」マッチングプラットフォームです。" />
+    <meta property="og:url" content=@url />
+    <meta property="og:site_name" content="Mint SPORTS - ミントスポーツ" />
+    <meta property="og:image" content="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/twittercard.jpg" />
+    <!-- Twitterカードの設定 -->
+    <meta name="twitter:card" content="summary_large_image" />
     <style>
-        .header-container {
-            display: flex;
-            align-items: center; /* 縦方向の中央揃え */
-            justify-content: flex-start; /* アイテムを左側に寄せる */
+        .card {
+            background-color: #2a3f54; /* ダークな背景色 */
+            color: #f8f9fa; /* 明るいテキスト色 */
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+            border-radius: 10px; /* 角の丸み */
         }
 
-            .header-container .back-arrow {
-                margin-right: 20px; /* アイコンとテキストの間に少しスペースを設ける */
+            .card:hover {
+                box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
             }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .profile-icon-profile {
+            width: 120px; /* 画像のサイズを大きく */
+            height: 120px;
+            border-radius: 50%; /* 画像を円形に */
+            border: 3px solid #f8f9fa; /* 画像の境界線 */
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        
+
+        .edit-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        .profile-logo {
+            color: #4da6ff; /* アイコンの色を変更 */
+        }
+
+
+
+        .modal-backdrop.show {
+            opacity: 0.7; /* 背景を暗くする */
+        }
+
+        .modal-content {
+            background: transparent; /* 背景を透明に */
+        }
+
+        .modal-body img {
+            width: 350px; /* 画像の最大幅をモーダルの幅に合わせる */
+            height: 350px; /* 高さを自動調整 */
+        }
+
+        .btn-close-white {
+            color: #fff; /* 閉じるボタンの色を白に */
+        }
     </style>
 </head>
-<div class="header-container">
-    <span class="back-arrow btn-primary" onclick="history.back()" title="back">
-        <span class="material-symbols-outlined">
-            arrow_back
-        </span>
+
+<span class="back-arrow btn-primary" onclick="goBackOrHome()" title="back">
+    <span class="material-symbols-outlined">
+        arrow_back
     </span>
-<h1 class="text-primary">@Model.UserName のプロフィール</h1>
+</span>
+
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="card position-relative">
+            <!-- Editボタン (右上に固定) -->
+                @if (currentUser?.Id == Model.Id)
+                {
+                    <div class="position-absolute top-0 end-0 m-2">
+                        <a class="btn btn-outline-light" asp-area="Identity" asp-page="/Account/Manage/Index">
+                            <div class="d-flex align-items-center">    
+                                <span class="material-symbols-outlined me-1 profile-logo">
+                                        edit
+                                </span>
+                                <span>Edit</span>
+                            </div>
+                        </a>
+                    </div>
+                }
+                <div class="card-body text-center">
+                
+                    @if (!string.IsNullOrWhiteSpace(Model.ProfilePictureUrl))
+                    {
+                        <img src="@Model.ProfilePictureUrl" alt="Profile Picture" class="profile-icon-profile mb-3" data-bs-toggle="modal" data-bs-target="#imageModal" style="cursor:pointer;" />
+                    }
+                    else
+                    {
+                        <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/kkrn_icon_user_3.png" alt="Profile Picture" class="profile-icon-profile mb-3" data-bs-toggle="modal" data-bs-target="#imageModal" style="cursor:pointer;" />
+                    }
+
+                    <!-- 画像モーダル -->
+                    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content bg-transparent border-0">
+                                <div class="modal-body p-0">
+                                    @if (!string.IsNullOrWhiteSpace(Model.ProfilePictureUrl))
+                                    {
+                                        <img src="@Model.ProfilePictureUrl" alt="Profile Picture" class="img-fluid" />
+                                    }
+                                    else
+                                    {
+                                        <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/kkrn_icon_user_3.png" alt="Profile Picture" class="img-fluid" />
+                                    }
+                                </div>
+                                <div class="modal-footer border-top-0 justify-content-center">
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="card-title fw-bold mb-0 lh-1">@displayname</h3>
+
+                    <div class="d-flex justify-content-center align-items-center mb-2 lh-1">
+                        
+                        <div class="me-2 text-secondary">@Model.UserName</div>
+                        <div class="ms-2 text-secondary">@age</div>
+                        @if (Model.SelectSex != Sex.sexnull)
+                        {
+                            @if (Model.SelectSex == Sex.man)
+                            {
+                                <span class="material-symbols-outlined text-primary ms-3">
+                                    man
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="material-symbols-outlined text-danger ms-3">
+                                    woman
+                                </span>
+                            }
+                        }
+                    </div>
+                
+                    @if(!string.IsNullOrWhiteSpace(Model.Profile))
+                    {
+                        <pre class="mb-0">@Model.Profile</pre>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<p><strong>表示名:</strong> @displayname</p>
-<p><strong>年齢:</strong> @age</p>
-<p><strong>性別:</strong> @Model.SelectSex.GetDisplayName()</p>
-<label><strong>プロフィール</strong></label><pre>@Model.Profile</pre>

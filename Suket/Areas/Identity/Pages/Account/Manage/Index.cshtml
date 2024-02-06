@@ -104,7 +104,7 @@
             }
             else
             {
-                <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/Spork_Logo.jpg" alt="Profile Picture" class="profile-icon m-2" id="profileImage" />
+                    <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/kkrn_icon_user_3.png" alt="Profile Picture" class="profile-icon m-2" id="profileImage" />
             }
             <span class="material-symbols-outlined edit-icon">
                 edit
@@ -112,7 +112,7 @@
         </div>
         </div>
         <!-- 隠れているファイル入力 -->
-        <input type="file" id="inputImage" style="display: none;" value="" />
+        <input type="file" id="inputImage" accept="image/jpeg, image/png, image/gif, image/heic" style="display: none;" value="" />
 
         <!-- トリミングモーダル -->
         <div class="modal fade" id="modalCropper" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
@@ -182,8 +182,7 @@
             <textarea asp-for="Input.Profile" class="form-control" rows="5"></textarea>
             <span asp-validation-for="Input.Profile" class="text-danger"></span>
             
-            <br />
-            <button id="update-profile-button" type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
+            <button id="update-profile-button" type="submit" class="w-100 btn btn-lg btn-primary rounded-pill mb-3 mt-2">Save</button>
         </form>
     </div>
 </div>
@@ -219,6 +218,12 @@
             // 画像選択時にモーダルを開く
             $('#inputImage').change(function (event) {
                 var files = event.target.files;
+
+                if (file && !['image/jpeg', 'image/png', 'image/gif', 'image/heic'].includes(file.type)) {
+                    alert('画像ファイルのみを選択してください。');
+                    $(this).val(''); // ファイル入力をクリア
+                    return;
+                }
 
                 if (files && files.length) {
                     var file = files[0];

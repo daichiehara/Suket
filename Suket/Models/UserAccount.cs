@@ -54,5 +54,8 @@ namespace Suket.Models
         public ICollection<Review> ReviewsWritten { get; set; }
         public ICollection<Review> ReviewsReceived { get; set; }
         public virtual ICollection<PaymentRecord> PaymentRecords { get; set; }
+        public virtual ICollection<TransactionRecord> TransactionRecords { get; set; }
+
+        public virtual UserBalance UserBalance { get; set; }
     }
 }

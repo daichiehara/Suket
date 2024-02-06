@@ -19,14 +19,45 @@
     }
 
     var successMessage = (string)TempData["SuccessMessage"];
+    var error = (string)TempData["Error"];
+
 }
+
+<head>
+    <script src="https://www.google.com/recaptcha/enterprise.js?render=6LfkLlgpAAAAAHfVfEflnhOKh02lfbWX5pirZaqH"></script>
+    <!-- Your code -->
+</head>
+
+<style>
+    /* ローディングスピナーとオーバーレイのスタイル */
+        .loading-overlay{
+            display:none;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1050;
+        }
+        
+        #spinner-border {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1051;
+        }
+</style>
 
 <h1 class="text-primary" style="text-align:center;">お問い合わせ</h1>
 
 <hr />
 <div class="row justify-content-center">
     <div class="col-md-4">
-        <form asp-action="Create">
+        <form asp-action="Create" id="Create">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             @if (!isLoggedIn)
             {
@@ -52,14 +83,27 @@
                 <textarea asp-for="Message" class="form-control" rows="5"></textarea>
                 <span asp-validation-for="Message" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <input type="submit" value="送信" class="w-100 btn btn-primary" />
+            <div class="form-group mt-3 mb-3">
+                <input type="button" value="送信" id="formButton" class="w-100 btn btn-primary g-recaptcha" data-sitekey="6LfkLlgpAAAAAHfVfEflnhOKh02lfbWX5pirZaqH"
+                       data-callback='onSubmit'
+                       data-action='submit' />
             </div>
+            <input type="hidden" id="gRecaptchaResponse" name="gRecaptchaResponse" value="">
             @if (isLoggedIn)
             {
                 <input type="hidden" asp-for="@Model.UserAccountId" value="@currentUser.Id" />
             }
         </form>
+    </div>
+</div>
+
+<!-- ローディングオーバーレイ -->
+<div class="loading-overlay">
+    <div class="overlay"></div>
+    <div id="spinner-border">
+        <div class="spinner-border text-primary" role="status" style="width:3rem; height:3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
     </div>
 </div>
 
@@ -71,9 +115,34 @@
     </div>
 }
 
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-dangeralert-dismissible fade show" role="alert">
+        @error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+
 @if(isAdmin)
 {
     <div>
         <a asp-action="Index">Back to List</a>
     </div>
+}
+
+@section Scripts{
+    <script>
+        function onSubmit(token) {
+            document.getElementById('gRecaptchaResponse').value = token;
+            document.getElementById("Create").submit();
+        }
+
+        $(function () {
+            $('#formButton').click(function () {
+                // ローディングスピナーを表示
+                $('.loading-overlay').show();
+            });
+        });
+    </script>
 }

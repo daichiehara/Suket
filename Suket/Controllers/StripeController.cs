@@ -18,10 +18,12 @@ namespace Suket.Controllers
     public class StripeController : Controller
     {
         private readonly UserManager<UserAccount> _userManager;
+        private readonly AWSSecretsManagerService _awsSecretsManagerService;
 
-        public StripeController(UserManager<UserAccount> userManager)
+        public StripeController(UserManager<UserAccount> userManager, AWSSecretsManagerService awsSecretsManagerService)
         {
             _userManager = userManager;
+            _awsSecretsManagerService = awsSecretsManagerService;
         }
         public IActionResult Index()
         {
@@ -41,6 +43,7 @@ namespace Suket.Controllers
         }
         */
 
+        /*
         private static async Task<string> GetStripeAPIKeyFromAWSSecretsManager()
         {
             string secretName = "MintSPORTS_secret";  // シークレットの名前を変更
@@ -76,6 +79,7 @@ namespace Suket.Controllers
 
             throw new Exception("StripeAPIKey not found in the secret.");
         }
+        */
 
         [HttpGet]
         [Authorize]
@@ -101,7 +105,10 @@ namespace Suket.Controllers
         [Authorize]
         public async Task<IActionResult> CreateAccount()
         {
-            StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
+            //StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
+            var stripeApiKey = await _awsSecretsManagerService.GetSecretAsync("MintSPORTS_secret");
+            StripeConfiguration.ApiKey = stripeApiKey;
+
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
@@ -146,7 +153,10 @@ namespace Suket.Controllers
         [Authorize]
         public async Task<IActionResult> CreateAccountLink()
         {
-            StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
+            //StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
+            var stripeApiKey = await _awsSecretsManagerService.GetSecretAsync("MintSPORTS_secret");
+            StripeConfiguration.ApiKey = stripeApiKey;
+
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
@@ -198,8 +208,9 @@ namespace Suket.Controllers
             var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
 
             // Verify the webhook signature (for security)
-            //const string endpointSecret = "whsec_f8cd12c25d871ad7eb78bc7549def9b8faac91b44837832b2a8cc1403f4ce01b";
-            const string endpointSecret = "whsec_JHw9OGvxbHQxc0HyVxMpC1kmOkC9p0W5";
+            //test endpoint
+            const string endpointSecret = "whsec_f8cd12c25d871ad7eb78bc7549def9b8faac91b44837832b2a8cc1403f4ce01b";
+            //const string endpointSecret = "whsec_JHw9OGvxbHQxc0HyVxMpC1kmOkC9p0W5";
             try
             {
                 var stripeEvent = EventUtility.ConstructEvent(json,
@@ -253,7 +264,9 @@ namespace Suket.Controllers
 
             try
             {
-                StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
+                //StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
+                var stripeApiKey = await _awsSecretsManagerService.GetSecretAsync("MintSPORTS_secret");
+                StripeConfiguration.ApiKey = stripeApiKey;
                 var service = new AccountService();
                 service.Delete(user.StripeAccountId);
 
@@ -275,7 +288,9 @@ namespace Suket.Controllers
         [Authorize]
         public async Task<IActionResult> StripeDashboard()
         {
-            StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
+            //StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
+            var stripeApiKey = await _awsSecretsManagerService.GetSecretAsync("MintSPORTS_secret");
+            StripeConfiguration.ApiKey = stripeApiKey;
 
             var user = await _userManager.GetUserAsync(User);
             if (user == null || string.IsNullOrEmpty(user.StripeAccountId))

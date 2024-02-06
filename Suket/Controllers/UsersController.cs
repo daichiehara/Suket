@@ -1,9 +1,11 @@
 ﻿// UsersController.cs
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Suket.Data;
 using Suket.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
@@ -14,10 +16,12 @@ namespace Suket.Controllers
     public class UsersController : Controller
     {
         private readonly UserManager<UserAccount> _userManager;
+        private readonly ApplicationDbContext _context;
 
-        public UsersController(UserManager<UserAccount> userManager)
+        public UsersController(UserManager<UserAccount> userManager, ApplicationDbContext context)
         {
             _userManager = userManager;
+            _context = context;
         }
 
         // UsersController.cs
@@ -34,6 +38,8 @@ namespace Suket.Controllers
             {
                 return NotFound();
             }
+
+            ViewData["HideNavbar"] = true; // navbarを非表示にする
 
             return View(user);
         }
@@ -88,7 +94,31 @@ namespace Suket.Controllers
             return View(model);
         }
 
-        
+        // 残高と取引履歴を表示するアクション
+        [Authorize]
+        public async Task<IActionResult> Balance()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var balance = await _context.UserBalance.FirstOrDefaultAsync(ub => ub.Id == user.Id);
+            var transactions = await _context.TransactionRecord
+                .Include(t => t.Post) // Post データを事前に読み込む
+                .Where(tr => tr.UserAccountId == user.Id)
+                .OrderByDescending(tr => tr.TransactionDate) // TransactionDateで降順にソート
+                .ToListAsync();
+
+            var viewModel = new BalanceViewModel
+            {
+                Balance = balance,
+                Transactions = transactions
+            };
+
+            return View(viewModel);
+        }
     }
 
 }

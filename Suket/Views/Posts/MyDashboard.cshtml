@@ -1,0 +1,242 @@
+﻿@using Microsoft.AspNetCore.Identity;
+@model MyDashboardViewModel
+@inject UserManager<UserAccount> userManager;
+@{
+    ViewData["Title"] = "My Dashboard";
+    var currentUser = await userManager.GetUserAsync(User);
+    var isLoggedIn = (bool)ViewData["IsLoggedIn"];
+}
+<head>
+    <link rel="stylesheet" href="/css/PostIndex.css" />
+    <script src="https://js.stripe.com/v3/"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+</head>
+
+<div class="row">
+    <div class="col-md-3"></div>
+    <div class="col-md-6">
+        <div class="d-flex align-items-center mb-3">
+            <span class="material-symbols-outlined me-2 fs-3 text-primary">
+            sentiment_satisfied
+            </span>
+            <h5 class="mb-0 fw-bold">My Post</h5>
+        </div>
+        <ul class="nav nav-tabs nav-pills nav-justified text-center mb-2" style="cursor:pointer;">
+            <li class="nav-item">
+                <a class="nav-link active" data-toggle="tab" id="subscribedPostsTab">応募したPost</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" id="myPostsTab">募集したPost</a>
+            </li>
+        </ul>
+    </div>
+    <div class="col-md-3"></div>
+</div>
+<div class="row">
+    <div class="col-md-3"></div>
+    <div class="col-md-6">
+        <div id="postsContainer">
+            <!-- 投稿データがここに動的にロードされる -->
+        </div>
+        <button id="subscribedPostsMoreButton" class="btn btn-link rounded-pill w-100 mt-2">もっと見る</button>
+        <button id="myPostsMoreButton" class="btn btn-link rounded-pill w-100 mt-2">もっと見る</button>
+    </div>
+    <div class="col-md-3"></div>
+</div>
+@section Scripts {
+    <script>
+        var isLoggedIn = @Json.Serialize(isLoggedIn);
+
+        $(document).ready(function () {
+            // 初期タブのIDを取得（デフォルトは 'subscribedPostsTab'）
+            var initialTabId = "subscribedPostsTab";
+
+            // デフォルトタブに基づいてボタンを切り替え
+            toggleMoreButton(initialTabId);
+            
+            // タブがクリックされたときの処理
+            $(".nav-link").click(function () {
+                var tabId = $(this).attr("id");
+
+                // すべてのタブのアクティブ状態を解除
+                $(".nav-link").removeClass("active");
+
+                // クリックされたタブをアクティブにする
+                $("#" + tabId).addClass("active");
+
+                // ボタンの表示を切り替え
+                toggleMoreButton(tabId);
+
+                // タブ切り替え時にページ数をリセット
+                if (tabId === "myPostsTab") {
+                    myPostsPage = 1;
+                    loadPosts('/Posts/LoadMyPosts', myPostsPage);
+                } else if (tabId === "subscribedPostsTab") {
+                    subscribedPostsPage = 1;
+                    loadPosts('/Posts/LoadMySubscribedPosts', subscribedPostsPage);
+                }
+            });
+
+            // 最初のタブのデータをロードする
+            loadPosts('/Posts/LoadMySubscribedPosts',1);
+        });
+
+        function updateActiveNavLink() {
+            // すべてのナビゲーションリンクの 'active' クラスを削除
+            $('.navbar-nav .nav-link').removeClass('active');
+
+            // 特定の条件に基づいて 'active' クラスを適用
+            // 例えば、ある特定のデータ属性がセットされている場合など
+            $('.navbar-nav .nav-link[data-target="mydashboard"]').addClass('active');
+        }
+
+        function toggleMoreButton(tabId) {
+            // 'もっと見る'ボタンの表示/非表示を切り替え
+            if (tabId === "myPostsTab") {
+                $("#myPostsMoreButton").show();
+                $("#subscribedPostsMoreButton").hide();
+            } else if (tabId === "subscribedPostsTab") {
+                $("#myPostsMoreButton").hide();
+                $("#subscribedPostsMoreButton").show();
+            }
+        }
+
+        var myPostsPage = 1;
+        var subscribedPostsPage = 1;
+
+        function loadPosts(url, page) {
+            $.ajax({
+                url: url + "?page=" + page,
+                type: 'GET',
+                success: function (data) {
+                    // タブ切り替え時は内容を置き換え、それ以外は追加
+                    if (page === 1) {
+                        $("#postsContainer").html(data);
+                    } else {
+                        $("#postsContainer").append(data);
+                    }
+                    initializeSubscriptionButtons();
+                    // 投稿がない場合、'もっと見る'ボタンを非表示にする
+                    if (!data.trim()) {
+                        $("#myPostsMoreButton").hide();
+                        $("#subscribedPostsMoreButton").hide();
+                    }
+                    updateActiveNavLink();
+                },
+                error: function () {
+                    alert("Error loading posts");
+                }
+            });
+        }
+
+        $("#myPostsMoreButton").click(function() {
+            myPostsPage++;
+            loadPosts('/Posts/LoadMyPosts', myPostsPage);
+        });
+
+        $("#subscribedPostsMoreButton").click(function() {
+            subscribedPostsPage++;
+            loadPosts('/Posts/LoadMySubscribedPosts', subscribedPostsPage);
+        });
+
+        function initializeSubscriptionButtons() {
+            $('.subscription-button').each(function () {
+                var button = $(this);
+                var isLikedByUser = button.data('liked-by-user') === 'True'; // 属性を読み取る
+                var isAdoptedByUser = button.data('adopted-by-user') === 'True'; // 属性を読み取る
+
+                if (isLikedByUser) {
+                    if (isAdoptedByUser) {
+                        button.addClass('liked-adopted');
+                        button.prop('disabled', true);
+                    } else {
+                        button.addClass('liked');
+                    }
+                }
+            });
+        }
+
+        // Stripeの公開キーの初期化
+        //test
+        //var stripe = Stripe('pk_test_51NOazSCtzLwFlO8auPQ8fbTs7g3XUGuacXM4ww3cHUQhs4n2wEggHp7IJO4LHN7nKufFIrwEa2SGTO3kavmOat4u00FGyurm7u');
+        var stripe = Stripe('pk_live_51NOazSCtzLwFlO8aKGf5T9MUhsZ61B6YXYbEfBGJ89WBRWGS9lneiOXIttpzPYPwmdataTumrLyLQO1OhCAQ2nFv00lMQJMfsa');  // Replace with your Stripe public key
+
+        $(document).on('click', '.subscription-button', function () {
+            if (!isLoggedIn) {
+                window.location.href = '/Identity/Account/Login'; // ログインページへのパス
+                return;
+            }
+            
+            var button = $(this);
+            var countSpan = button.next('.subscription-count');
+            var postId = button.data('post-id');
+            var postReward = parseFloat(button.data('reward')); // Get the reward from the button's data attribute
+            var paymentType = button.data('payment-type');
+            var currentUserId = '@currentUser?.Id'; // 現在のユーザーID
+
+            var originalText = button.text(); // 元のボタンテキストを保存
+            var spinnerHtml = '<span class="spinner-border spinner-border-sm" text-primary role="status" aria-hidden="true"></span>';
+
+            button.html(spinnerHtml); // ボタンの内容をスピナーに変更
+            button.prop('disabled', true); // ボタンを非活性化
+
+            // Get the current like count
+            var count = parseInt(countSpan.text());
+
+            // 参加費が必要な場合
+            if (paymentType == 1 && postReward > 0 && !button.hasClass('liked')) {
+                var userConfirmation = confirm('応募するには参加費を支払う必要があります。決済画面へ移動しますか？');
+                if (userConfirmation) {
+                    // AjaxリクエストでStripeセッションIDを取得
+                    $.ajax({
+                        url: '/Posts/CreateCheckoutSession',
+                        method: 'POST',
+                        data: { userIds: [currentUserId], postId: postId },
+                        success: function (response) {
+                            // Stripeのチェックアウトページへリダイレクト
+                            stripe.redirectToCheckout({
+                                sessionId: response.sessionId
+                            }).then(function (result) {
+                                // エラー処理
+                                alert(result.error.message);
+                            });
+                        }
+                    });
+                    return;
+                }
+            }
+            else {
+                var cancelConfirmation;
+                if (button.hasClass('liked')) {
+                    cancelConfirmation = confirm('すでに応募済みですが、本当に応募を取り消してもよろしいですか？参加費を支払っている場合は返金されません。');
+                }
+                if (!button.hasClass('liked') || cancelConfirmation) {
+                    $.ajax({
+                        url: '/Posts/ToggleSubscription',
+                        method: 'POST',
+                        data: { id: postId },
+                        success: function (data) {
+                            // Check if the button has the 'liked' class
+                            if (button.hasClass('liked')) {
+                                // If the button has the 'liked' class, decrement the count and remove the class
+                                if (count > 0) {
+                                    countSpan.text(count - 1);
+                                }
+                                button.removeClass('liked');
+                            } else {
+                                // If the button does not have the 'liked' class, increment the count and add the class
+                                countSpan.text(count + 1);
+                                button.addClass('liked');
+                            }
+                        },
+                        complete: function () {
+                            button.html(originalText); // 処理完了後、ボタンの内容を元に戻す
+                            button.prop('disabled', false); // ボタンを再び活性化
+                        }
+                    });
+                }
+            }
+        });
+
+    </script>
+}

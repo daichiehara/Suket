@@ -7,6 +7,7 @@ namespace Suket.Models
     {
         public int Id { get; set; }
         public string PaymentIntentId { get; set; }
+        public PaymentType PaymentType { get; set; }
         public int PostId { get; set; }
         [ForeignKey("PostId")]
         [ValidateNever]

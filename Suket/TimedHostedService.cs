@@ -62,7 +62,6 @@ namespace Suket
                 // https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
                 throw e;
             }
-
             // JSONからStripeAPIKeyを取得
             var secrets = JsonSerializer.Deserialize<Dictionary<string, string>>(response.SecretString);
             if (secrets != null && secrets.ContainsKey("StripeAPIKey"))
@@ -89,15 +88,17 @@ namespace Suket
             _timer = new Timer(DoWork, null, delay, TimeSpan.FromHours(23));
             
 
+            //test
+            /*
             // 次の15分単位の時刻を取得
-            //var nextQuarterHour = now.AddMinutes(15 - (now.Minute % 15));
+            var nextQuarterHour = now.AddMinutes(15 - (now.Minute % 15));
 
             // 現在から次の15分単位の時刻までの残り時間を計算
-            //var delay = nextQuarterHour - now;
+            var delay = nextQuarterHour - now;
 
             // タイマーを設定して、残りの時間だけ遅延した後、毎15分に実行されるようにする
-            //_timer = new Timer(DoWork, null, delay, TimeSpan.FromMinutes(15));
-
+            _timer = new Timer(DoWork, null, delay, TimeSpan.FromMinutes(15));
+            */
             return Task.CompletedTask;
         }
 
@@ -112,6 +113,7 @@ namespace Suket
             var stripeApiKey = GetStripeAPIKeyFromAWSSecretsManager().GetAwaiter().GetResult();
             StripeConfiguration.ApiKey = stripeApiKey;
 
+            
             // 直近24時間の開始と終了時刻を計算
             var currentMoment = DateTime.UtcNow;
             var endTime = currentMoment.Date.AddHours(21); // 今日のpm9:00
@@ -122,10 +124,15 @@ namespace Suket
             }
 
             var startTime = endTime.AddDays(-1); // 前日のpm9:00
+            
 
-            //var currentMoment = DateTime.UtcNow; // 現在の時間
-            //var startTime = currentMoment.AddMinutes(-15); // 15分前
-
+            //test      
+            // 直近15分間の開始と終了時刻を計算
+            /*
+            var currentMoment = DateTime.UtcNow;
+            var startTime = currentMoment.AddMinutes(-15);
+            var endTime = currentMoment;
+            */
 
             // 上記の時間帯で開催された投稿を取得
             var postsToProcess = context.Post
@@ -145,7 +152,7 @@ namespace Suket
 
                     // PaymentRecordテーブルからPaymentIntentIdを取得
                     var paymentRecords = context.PaymentRecord
-                                                    .Where(pr => pr.PostId == post.PostId)
+                                                    .Where(pr => pr.PostId == post.PostId && !pr.Refunded)
                                                     .ToList();
 
                     foreach (var record in paymentRecords)
@@ -157,13 +164,21 @@ namespace Suket
                             PaymentIntent paymentIntent = paymentIntentService.Get(record.PaymentIntentId);
                             string latestChargeId = paymentIntent.LatestChargeId;
 
+                            var recipientAccountId = record.PaymentType == PaymentType.RewardToParticipant ? participant.UserAccountId : post.UserAccountId;
+                            var userBalance = context.UserBalance
+                                                    .FirstOrDefault(ub => ub.Id == recipientAccountId);
+                            /*
+                            var userBalance = context.UserBalance
+                            .FirstOrDefault(ub => ub.Id == participant.UserAccountId);
+                            */
+
                             if (participant != null)
                             {
                                 // 参加者がRollCallに存在する場合、送金処理を行う
                                 try
                                 {
                                     // 送金処理...
-                                    var destinationAccountId = participant.UserAccount.StripeAccountId; // 連結アカウントIDを適切に取得
+                                    //var destinationAccountId = participant.UserAccount.StripeAccountId; // 連結アカウントIDを適切に取得
 
                                     // まず、PaymentIntentの金額から手数料を差し引きます
                                     var totalAmountAfterFee = paymentIntent.Amount * 0.90m; // 90%を取得
@@ -177,6 +192,7 @@ namespace Suket
                                     // 金額を小数点以下を切り捨てた整数値に変換
                                     var amountPerRecordFloored = Math.Floor(amountPerRecord);
 
+                                    /*
                                     var options = new TransferCreateOptions
                                     {
                                         Amount = (long)amountPerRecordFloored,
@@ -184,9 +200,33 @@ namespace Suket
                                         SourceTransaction = latestChargeId, // 事前に保存されたChargeIdを使用
                                         Destination = destinationAccountId
                                     };
+                                    
 
                                     var service = new TransferService();
                                     var transfer = service.Create(options);
+                                    */
+                                    if (userBalance != null)
+                                    {
+                                        // UserBalanceを更新
+                                        userBalance.Balance += amountPerRecordFloored; // 仮に報酬がpost.Rewardであるとします
+                                        userBalance.LastUpdated = DateTimeOffset.UtcNow;
+
+                                        context.UserBalance.Update(userBalance);
+
+                                        // TransactionRecordを作成
+                                        var transactionRecord = new TransactionRecord
+                                        {
+                                            //送金先のユーザー
+                                            UserAccountId = record.PaymentType == PaymentType.RewardToParticipant ? participant.UserAccountId : post.UserAccountId,
+                                            Type = TransactionType.Receipt,
+                                            Amount = amountPerRecordFloored,
+                                            PostId = post.PostId,
+                                            TransactionDate = DateTimeOffset.UtcNow,
+                                            PaymentIntentId = record.PaymentIntentId
+                                        };
+
+                                        context.TransactionRecord.Add(transactionRecord);
+                                    }
                                 }
                                 catch (Exception ex)
                                 {
@@ -196,25 +236,37 @@ namespace Suket
                             else
                             {
                                 // 参加者がRollCallに存在しない場合、返金処理を行う
+
                                 try
                                 {
-                                    // まず、PaymentIntentの金額から手数料を差し引きます
-                                    var totalAmountAfterFee = paymentIntent.Amount;
+                                    // Subscription と Adopt テーブルを確認して返金対象者を特定
+                                    var isSubscribed = context.Subscription.Any(s => s.PostId == record.PostId && s.UserAccountId == record.UserAccountId);
+                                    var isAdopted = context.Adoption.Any(a => a.PostId == record.PostId && a.UserAccountId == record.UserAccountId);
 
-                                    // 次に、同じPaymentIntentIdのレコードの数を取得
-                                    var samePaymentIntentRecordCount = paymentRecords.Count(pr => pr.PaymentIntentId == record.PaymentIntentId);
-
-                                    // それから、残った金額をレコード数で割ります
-                                    var amountPerRecord = totalAmountAfterFee / samePaymentIntentRecordCount;
-
-                                    var refundService = new RefundService();
-                                    var refundOptions = new RefundCreateOptions
+                                    if (record.PaymentType == PaymentType.RewardToParticipant || (isSubscribed && !isAdopted))
                                     {
-                                        PaymentIntent = record.PaymentIntentId,
-                                        Amount = (long)amountPerRecord,
-                                        // 追加のオプションが必要な場合はここで設定します
-                                    };
-                                    var refund = refundService.Create(refundOptions);
+                                        // まず、PaymentIntentの金額から手数料を差し引きます
+                                        var totalAmountAfterFee = paymentIntent.Amount;
+
+                                        // 次に、同じPaymentIntentIdのレコードの数を取得
+                                        var samePaymentIntentRecordCount = paymentRecords.Count(pr => pr.PaymentIntentId == record.PaymentIntentId);
+
+                                        // それから、残った金額をレコード数で割ります
+                                        var amountPerRecord = totalAmountAfterFee / samePaymentIntentRecordCount;
+
+                                        var refundService = new RefundService();
+                                        var refundOptions = new RefundCreateOptions
+                                        {
+                                            PaymentIntent = record.PaymentIntentId,
+                                            Amount = (long)amountPerRecord,
+                                            // 追加のオプションが必要な場合はここで設定します
+                                        };
+                                        var refund = refundService.Create(refundOptions);
+
+                                        // 返金処理が完了した後、PaymentRecordのRefundedプロパティを更新
+                                        record.Refunded = true;
+                                        context.PaymentRecord.Update(record);
+                                    }
                                 }
                                 catch (Exception ex)
                                 {
@@ -228,6 +280,8 @@ namespace Suket
                         }
                     }
 
+                    // DbContextの変更を保存
+                    context.SaveChanges();
                 }
                 catch (Exception ex)
                 {

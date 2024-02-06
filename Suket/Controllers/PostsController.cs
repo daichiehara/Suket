@@ -26,7 +26,10 @@ using Suket.Models;
 using X.PagedList;
 using System.Text.Json;
 using System.Collections.Generic;
-
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Google.Cloud.RecaptchaEnterprise.V1;
+using static Google.Cloud.RecaptchaEnterprise.V1.TransactionData.Types;
+using Suket.Resources;
 
 namespace Suket.Controllers
 {
@@ -38,8 +41,9 @@ namespace Suket.Controllers
         private readonly ISuketEmailSender _emailSender;
         private readonly INotificationService _notificationService;
         private readonly ILogger<PostsController> _logger;
+        private readonly AWSSecretsManagerService _awsSecretsManagerService;
 
-        public PostsController(ApplicationDbContext context, UserManager<UserAccount> userManager, SignInManager<UserAccount> signInManager, ISuketEmailSender emailSender, INotificationService notificationService, ILogger<PostsController> logger)
+        public PostsController(ApplicationDbContext context, UserManager<UserAccount> userManager, SignInManager<UserAccount> signInManager, ISuketEmailSender emailSender, INotificationService notificationService, ILogger<PostsController> logger, AWSSecretsManagerService awsSecretsManagerService)
         {
             _context = context;
             _userManager = userManager;
@@ -47,6 +51,7 @@ namespace Suket.Controllers
             _emailSender = emailSender;
             _notificationService = notificationService;
             _logger = logger;
+            _awsSecretsManagerService = awsSecretsManagerService;
         }
 
         /*
@@ -62,6 +67,8 @@ namespace Suket.Controllers
         }
         */
 
+
+        /*
         private static async Task<string> GetStripeAPIKeyFromAWSSecretsManager()
         {
             string secretName = "MintSPORTS_secret";  // シークレットの名前を変更
@@ -97,13 +104,17 @@ namespace Suket.Controllers
 
             throw new Exception("StripeAPIKey not found in the secret.");
         }
-
-
+        */
         // GET: Posts
         [HttpGet]
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 30, Genre? genre = null, Prefecture? prefecture = null, string? searchString = null, DateTimeOffset? fromDateTime = null, bool sortByDateTime = false)
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 15, Genre? genre = null, Prefecture? prefecture = null, string? searchString = null, DateTimeOffset? fromDateTime = null, bool sortByDateTime = false, bool isAjax = false)
         {
             var model = await GetPosts(page, pageSize, genre, prefecture, searchString, fromDateTime, sortByDateTime);
+
+            if (isAjax)
+            {
+                return PartialView("_PostListPartial", model.Posts);
+            }
 
             // Build the query string for the pagination links
             var queryString = new StringBuilder();
@@ -205,7 +216,7 @@ namespace Suket.Controllers
             var posts = await postsQuery.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
             // 全投稿数を取得します
             var totalPosts = await postsQuery.CountAsync();
-            
+
 
             // Like counts for each post
             var subscriptionCounts = posts.ToDictionary(
@@ -269,6 +280,8 @@ namespace Suket.Controllers
         // GET: Posts/Details/5
         public async Task<IActionResult> Details(int? id)
         {
+            ViewData["HideNavbar"] = true; // navbarを非表示にする
+
             if (TempData["ErrorMessage"] != null)
             {
                 ModelState.AddModelError(string.Empty, TempData["ErrorMessage"].ToString());
@@ -365,6 +378,8 @@ namespace Suket.Controllers
         [Authorize]
         public IActionResult Create()
         {
+            ViewData["HideNavbar"] = true; // navbarを非表示にする
+
             ViewData["UserAccountId"] = new SelectList(_context.Users, "Id", "Id");
             return View();
         }
@@ -374,11 +389,11 @@ namespace Suket.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("PostId,Title,PeopleCount,Prefecture,Place,Time,Item,Reward,Message,Created,Genre,State,Certification,UserAccountId")] Post post)
+        public async Task<IActionResult> Create([Bind("PostId,Title,PeopleCount,Prefecture,Place,Time,Item,Reward,PaymentType,Message,Created,Genre,State,Certification,UserAccountId")] Post post)
         {
             var currentUser = await _userManager.GetUserAsync(User); // 現在のユーザーを取得
             var currentUserId = currentUser?.Id;  // 現在のユーザーのIDを取得
-            
+
             if (ModelState.IsValid)
             {
                 // 日本のタイムゾーンを取得
@@ -391,7 +406,7 @@ namespace Suket.Controllers
                 post.Time = TimeZoneInfo.ConvertTimeToUtc(localDateTime, japanTimeZone);
 
                 post.Created = DateTime.UtcNow;
-                
+
 
                 Random r1 = new Random();
                 post.Certification = r1.Next(1000, 9999);
@@ -438,6 +453,8 @@ namespace Suket.Controllers
         [Authorize]
         public async Task<IActionResult> Edit(int? id)
         {
+            ViewData["HideNavbar"] = true; // navbarを非表示にする
+
             if (id == null || _context.Post == null)
             {
                 return NotFound();
@@ -449,6 +466,14 @@ namespace Suket.Controllers
                 return NotFound();
             }
 
+            // StateがCancelの場合は、編集画面にアクセスさせずに一覧画面などにリダイレクト
+            /*
+            if (post.State != State.Recruiting)
+            {
+                // ここでは一覧画面(Index)にリダイレクトしていますが、適宜変更してください
+                return RedirectToAction("Index");
+            }
+            */
             var jstZone = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
             post.Time = TimeZoneInfo.ConvertTimeFromUtc(post.Time.UtcDateTime, jstZone);
 
@@ -462,7 +487,7 @@ namespace Suket.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
-        public async Task<IActionResult> Edit(int id, [Bind("PostId,Title,PeopleCount,Prefecture,Place,Time,Item,Reward,Message,Genre,State,Certification,UserAccountId")] Post post)
+        public async Task<IActionResult> Edit(int id, [Bind("PostId,Title,PeopleCount,Prefecture,Place,Time,Item,PaymentType,Reward,Message,Genre,State,Certification,UserAccountId")] Post post)
         {
             /*
             if (post.State == State.End)
@@ -473,13 +498,31 @@ namespace Suket.Controllers
             //データベースから元のエンティティを取得します
             var originalPost = await _context.Post.AsNoTracking().FirstOrDefaultAsync(m => m.PostId == id);
 
+            /*
             // Rewardが減らされていないことを確認
-            if (originalPost.Reward > post.Reward)
+            if (originalPost.PaymentType == PaymentType.RewardToParticipant)
             {
-                ModelState.AddModelError("Reward", "報酬は増やすことはできますが、減らすことはできません。");
-                return View(post);
+                if (originalPost.Reward > post.Reward)
+                {
+                    ModelState.AddModelError("Reward", "報酬は増額することはできますが、減額はできません");
+                    return View(post);
+                }
+            }
+            else if(originalPost.PaymentType == PaymentType.FeeFromParticipant)
+            {
+                if (originalPost.Reward < post.Reward)
+                {
+                    ModelState.AddModelError("Reward", "参加費は減額することはできますが、増額はできません。");
+                    return View(post);
+                }
             }
 
+            if(originalPost.PaymentType == PaymentType.RewardToParticipant && post.PaymentType == PaymentType.FeeFromParticipant) 
+            {
+                ModelState.AddModelError("Reward", "支払い方式「報酬」から「参加費」への変更はできません。");
+                return View(post);
+            }
+            */
             //元のエンティティのUserAccountIdを新しいエンティティのUserAccountIdに設定します。
             post.UserAccountId = originalPost.UserAccountId;
             post.Created = originalPost.Created;
@@ -512,7 +555,9 @@ namespace Suket.Controllers
                                                                .Distinct()
                                                                .ToList();
 
-                    StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
+                    //StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
+                    var stripeApiKey = await _awsSecretsManagerService.GetSecretAsync("MintSPORTS_secret");
+                    StripeConfiguration.ApiKey = stripeApiKey;
                     foreach (var paymentIntentId in uniquePaymentIntentIds)
                     {
                         // Get the amount for this paymentIntentId to calculate the refund amount
@@ -520,27 +565,34 @@ namespace Suket.Controllers
                         var paymentIntent = paymentIntentService.Get(paymentIntentId);
                         long amountToRefund = paymentIntent.AmountReceived;
 
-                        // Calculate the number of days between now and the post time
-                        var daysBeforePostTime = (post.Time - DateTime.UtcNow).TotalDays;
-
-                        // Determine the refund percentage based on the days before post time
-                        double refundPercentage;
-                        if (daysBeforePostTime > 5)
+                        if (post.PaymentType == PaymentType.FeeFromParticipant)
                         {
-                            refundPercentage = 1.0; // 100% refund
+                            // FeeFromParticipantの場合は全額返金
+                            amountToRefund = paymentIntent.AmountReceived;
                         }
-                        else if (daysBeforePostTime > 2)
+                        else if (post.PaymentType == PaymentType.RewardToParticipant)
                         {
-                            refundPercentage = 0.8; // 80% refund
-                        }
-                        else
-                        {
-                            refundPercentage = 0.5; // 50% refund
-                        }
+                            // Calculate the number of days between now and the post time
+                            var daysBeforePostTime = (post.Time - DateTime.UtcNow).TotalDays;
 
-                        // Calculate the amount to refund
-                        amountToRefund = (long)(amountToRefund * refundPercentage);
+                            // Determine the refund percentage based on the days before post time
+                            double refundPercentage;
+                            if (daysBeforePostTime > 5)
+                            {
+                                refundPercentage = 1.0; // 100% refund
+                            }
+                            else if (daysBeforePostTime > 2)
+                            {
+                                refundPercentage = 0.8; // 80% refund
+                            }
+                            else
+                            {
+                                refundPercentage = 0.5; // 50% refund
+                            }
 
+                            // Calculate the amount to refund
+                            amountToRefund = (long)(amountToRefund * refundPercentage);
+                        }
                         // 返金処理
                         try
                         {
@@ -569,6 +621,20 @@ namespace Suket.Controllers
                         }
                     }
 
+                    var subscriptions = await _context.Subscription
+                        .Where(s => s.PostId == post.PostId)
+                        .Include(p => p.UserAccount)
+                        .ToListAsync();
+                    var japanTime = TimeZoneInfo.ConvertTimeFromUtc(post.Time.UtcDateTime, japanTimeZone).ToString("yyyy/MM/dd HH:mm");
+                    foreach (var subscription in subscriptions)
+                    {
+
+                        string email = subscription.UserAccount.Email;
+                        string subject = "応募していたPostの開催が中止になりました。";
+                        string message = string.Format(Resources.Notification.CancelBody, japanTime, post.Place, $"https://mintsports.net/Posts/Details/{post.PostId}");
+
+                        await _emailSender.SendEmailAsync(email, subject, message);
+                    }
                     await _context.SaveChangesAsync();
                 }
 
@@ -590,7 +656,7 @@ namespace Suket.Controllers
                 }
 
                 return RedirectToAction(nameof(Index));
-                
+
             }
 
             if (!ModelState.IsValid)
@@ -621,6 +687,8 @@ namespace Suket.Controllers
         [Authorize]
         public async Task<IActionResult> Delete(int? id)
         {
+            ViewData["HideNavbar"] = true; // navbarを非表示にする
+
             if (id == null || _context.Post == null)
             {
                 return NotFound();
@@ -634,8 +702,8 @@ namespace Suket.Controllers
                 return NotFound();
             }
 
-            var adoptionExists = await _context.Adoption.AnyAsync(a => a.PostId == id);
-            ViewData["AdoptionExists"] = adoptionExists;
+            var subscriptionExists = await _context.Subscription.AnyAsync(a => a.PostId == id);
+            ViewData["SubscriptionExists"] = subscriptionExists;
 
             return View(post);
         }
@@ -646,10 +714,10 @@ namespace Suket.Controllers
         [Authorize]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var adoptionExists = await _context.Adoption.AnyAsync(a => a.PostId == id);
+            var adoptionExists = await _context.Subscription.AnyAsync(a => a.PostId == id);
             if (adoptionExists)
             {
-                return View("Error", new ErrorViewModel { RequestId = "採用者が存在するので投稿は削除できません" });
+                return View("Error", new ErrorViewModel { RequestId = "応募者が存在するので投稿は削除できません" });
             }
 
             var post = await _context.Post.FindAsync(id);
@@ -664,10 +732,10 @@ namespace Suket.Controllers
 
         private bool PostExists(int id)
         {
-          return (_context.Post?.Any(e => e.PostId == id)).GetValueOrDefault();
+            return (_context.Post?.Any(e => e.PostId == id)).GetValueOrDefault();
         }
 
-        
+
 
         [HttpPost]
         [Authorize]
@@ -679,32 +747,56 @@ namespace Suket.Controllers
                 return NotFound();
             }
 
-            var subscription = await _context.Subscription.FirstOrDefaultAsync(l => l.PostId == id && l.UserAccountId == user.Id);
-            if (subscription != null)
+            var post = await _context.Post.Include(p => p.UserAccount).FirstOrDefaultAsync(p => p.PostId == id);
+            if (post == null)
             {
-                // If the user has already liked this post, remove the like
-                _context.Subscription.Remove(subscription);
+                return NotFound();
+            }
+
+            var subscription = await _context.Subscription.FirstOrDefaultAsync(l => l.PostId == id && l.UserAccountId == user.Id);
+
+            if (post.State == State.Recruiting)
+            {
+                if (subscription != null && (post.PaymentType == PaymentType.RewardToParticipant || post.Reward == 0))
+                {
+                    // If the user has already liked this post, remove the like
+                    _context.Subscription.Remove(subscription);
+                }
+                else
+                {
+                    // If the user has not liked this post yet, add a new like
+                    subscription = new Models.Subscription
+                    {
+                        PostId = id,
+                        UserAccountId = user.Id
+                    };
+                    _context.Subscription.Add(subscription);
+
+                    // 日本標準時のタイムゾーンを取得
+                    var japanTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+                    // UTC時間を日本時間に変換
+                    var japanTime = TimeZoneInfo.ConvertTimeFromUtc(post.Time.UtcDateTime, japanTimeZone).ToString("yyyy/MM/dd HH:mm");
+                    var subject = Resources.Notification.SubscriptionSubject;
+                    var body = string.Format(Resources.Notification.SubscriptionBody, japanTime, post.Place);
+                    await _emailSender.SendEmailAsync(post.UserAccount.Email, subject, body);
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(); // the updated like count is no longer returned
             }
             else
             {
-                // If the user has not liked this post yet, add a new like
-                subscription = new Models.Subscription
-                {
-                    PostId = id,
-                    UserAccountId = user.Id
-                };
-                _context.Subscription.Add(subscription);
+                return BadRequest();
             }
-
-            await _context.SaveChangesAsync();
-
-            return Ok(); // the updated like count is no longer returned
+            
         }
 
         // PostsController.cs
         [Authorize]
         public async Task<IActionResult> Subscriber(int? id)
         {
+            ViewData["HideNavbar"] = true; // navbarを非表示にする
             if (id == null)
             {
                 return NotFound();
@@ -724,6 +816,8 @@ namespace Suket.Controllers
             ViewData["PostUserId"] = post.UserAccountId;
 
             ViewData["PostState"] = post.State;
+
+            ViewData["PostPaymentType"] = post.PaymentType;
 
             var subscriptions = await _context.Subscription
                 .Where(s => s.PostId == id)
@@ -835,7 +929,9 @@ namespace Suket.Controllers
             {
                 _logger.LogInformation("Starting CreateCheckoutSession process.");
 
-                StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
+                //StripeConfiguration.ApiKey = await GetStripeAPIKeyFromAWSSecretsManager();
+                var stripeApiKey = await _awsSecretsManagerService.GetSecretAsync("MintSPORTS_secret");
+                StripeConfiguration.ApiKey = stripeApiKey;
                 _logger.LogInformation("Stripe API Key retrieved from Azure Key Vault.");
 
                 var post = await _context.Post.FindAsync(postId);
@@ -859,43 +955,83 @@ namespace Suket.Controllers
                     return Json(new { reward = 0 });
                 }
 
-                //var totalAmount = post.Reward * userIds.Count;
-                var options = new SessionCreateOptions
-                {
-                    CustomerEmail = userAccount.Email,
-                    Mode = "payment",
-                    PaymentMethodTypes = new List<string> { "card" },
-                    LineItems = new List<SessionLineItemOptions>
-                    {
-                        new SessionLineItemOptions
-                        {
-                            PriceData = new SessionLineItemPriceDataOptions
-                            {
-                                UnitAmount = post.Reward,
-                                Currency = "jpy",
-                                ProductData = new SessionLineItemPriceDataProductDataOptions
-                                {
-                                    Name = $"採用者({userIds.Count}人)への報酬",
-                                },
-                            },
-                            Quantity = userIds.Count,
-                        },
-                    },
-                    SuccessUrl = $"https://mintsports.net/Payment/Success?postId={postId}",
-                    CancelUrl = $"https://mintsports.net/Posts/Subscriber/{post.PostId}",
-                    Metadata = new Dictionary<string, string>
-                    {
-                        {"post_id", postId.ToString()},
-                        {"user_ids", string.Join(",", userIds)}
-                    }
-                };
 
+                // Stripeセッションのオプションを設定
+                var sessionOptions = new SessionCreateOptions();
+                if (post.PaymentType == PaymentType.FeeFromParticipant)
+                {
+                    // 参加費の場合
+                    var participant = await _context.Users.FindAsync(userIds[0]); // 参加者の情報を取得
+                    sessionOptions = new SessionCreateOptions
+                    {
+                        CustomerEmail = participant.Email,
+                        Mode = "payment",
+                        PaymentMethodTypes = new List<string> { "card" },
+                        LineItems = new List<SessionLineItemOptions>
+                        {
+                            new SessionLineItemOptions
+                            {
+                                PriceData = new SessionLineItemPriceDataOptions
+                                {
+                                    UnitAmount = post.Reward,
+                                    Currency = "jpy",
+                                    ProductData = new SessionLineItemPriceDataProductDataOptions
+                                    {
+                                        Name = "参加費",
+                                    },
+                                },
+                                Quantity = 1,
+                            },
+                        },
+                        // SuccessUrlとCancelUrlは同じまま
+                        SuccessUrl = $"https://mintsports.net/Payment/Success?postId={postId}",
+                        CancelUrl = $"https://mintsports.net/Posts/Details/{post.PostId}",
+                        Metadata = new Dictionary<string, string>
+                        {
+                            {"post_id", postId.ToString()},
+                            {"user_ids", string.Join(",", userIds)}
+                        }
+                    };
+                }
+                else if (post.PaymentType == PaymentType.RewardToParticipant)
+                {
+                    sessionOptions = new SessionCreateOptions
+                    {
+                        CustomerEmail = userAccount.Email,
+                        Mode = "payment",
+                        PaymentMethodTypes = new List<string> { "card" },
+                        LineItems = new List<SessionLineItemOptions>
+                        {
+                            new SessionLineItemOptions
+                            {
+                                PriceData = new SessionLineItemPriceDataOptions
+                                {
+                                    UnitAmount = post.Reward,
+                                    Currency = "jpy",
+                                    ProductData = new SessionLineItemPriceDataProductDataOptions
+                                    {
+                                        Name = $"採用者({userIds.Count}人)への報酬",
+                                    },
+                                },
+                                Quantity = userIds.Count,
+                            },
+                        },
+                        SuccessUrl = $"https://mintsports.net/Payment/Success?postId={postId}",
+                        CancelUrl = $"https://mintsports.net/Posts/Subscriber/{post.PostId}",
+                        Metadata = new Dictionary<string, string>
+                        {
+                            {"post_id", postId.ToString()},
+                            {"user_ids", string.Join(",", userIds)}
+                        }
+                    };
+                }
                 var service = new SessionService();
-                Session session = service.Create(options);
+                Session session = service.Create(sessionOptions);
                 _logger.LogInformation("Stripe session created successfully.");
 
                 return Json(new { sessionId = session.Id, reward = post.Reward });
             }
+
             catch (StripeException stripeEx)
             {
                 _logger.LogError(stripeEx, "Error occurred with Stripe.");
@@ -907,7 +1043,7 @@ namespace Suket.Controllers
                 return Json(new { error = ex.Message });
             }
         }
-
+    
         [HttpPost]
         public async Task<IActionResult> StripeWebhook()
         {
@@ -929,12 +1065,20 @@ namespace Suket.Controllers
                 var userIds = session.Metadata["user_ids"].Split(',').ToList();
                 var postId = int.Parse(session.Metadata["post_id"]);
 
+                var post = await _context.Post.FindAsync(postId);
+                if (post == null)
+                {
+                    _logger.LogWarning($"Post with ID {postId} not found.");
+                    return NotFound();
+                }
+
                 // New code: Create paymentRecord entries for each user based on the session's PaymentIntentId
                 foreach (var userId in userIds)
                 {
                     var paymentRecord = new PaymentRecord
                     {
                         PaymentIntentId = session.PaymentIntentId,
+                        PaymentType = post.PaymentType,
                         PostId = postId,
                         UserAccountId = userId
                     };
@@ -945,7 +1089,27 @@ namespace Suket.Controllers
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("Changes saved to database.");
 
-                return await Adopt(userIds, postId);
+                // Check the payment type of the post
+                if (post.PaymentType == PaymentType.RewardToParticipant)
+                {
+                    return await Adopt(userIds, postId);
+                }
+                else if (post.PaymentType == PaymentType.FeeFromParticipant)
+                {
+                    // Create subscription records for each user
+                    foreach (var userId in userIds)
+                    {
+                        var subscription = new Models.Subscription
+                        {
+                            UserAccountId = userId,
+                            PostId = postId
+                        };
+                        _context.Add(subscription);
+                    }
+
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Subscription records added to context.");
+                }
             }
 
             return Ok();
@@ -977,35 +1141,35 @@ namespace Suket.Controllers
 
 
             // Like counts for each post
-            var subscriptionCounts = userSubscriptions.ToDictionary(
+            var s_subscriptionCounts = userSubscriptions.ToDictionary(
                 p => p.PostId,
                 p => p.Subscriptions.Count);
 
-            var userSubscriptionPosts = userSubscriptions.ToDictionary(
+            var s_userSubscriptionPosts = userSubscriptions.ToDictionary(
                 p => p.PostId,
                 p => true);
 
-            var userAdoptionPosts = await _context.Adoption
+            var s_userAdoptionPosts = await _context.Adoption
                 .Where(a => a.UserAccountId == currentUser.Id)
                 .ToDictionaryAsync(a => a.PostId, a => true);
 
             if (showAdopted)
             {
                 userSubscriptions = userSubscriptions
-                    .Where(p => userAdoptionPosts.ContainsKey(p.PostId))
+                    .Where(p => s_userAdoptionPosts.ContainsKey(p.PostId))
                     .ToList();
             }
 
             // Pass like counts and adoption user Ids to the view via ViewData
-            ViewData["SubscriptionCounts"] = subscriptionCounts;
-            ViewData["UserSubscriptionPosts"] = userSubscriptionPosts;
-            ViewData["UserAdoptionPosts"] = userAdoptionPosts;
+            ViewData["s_SubscriptionCounts"] = s_subscriptionCounts;
+            ViewData["s_UserSubscriptionPosts"] = s_userSubscriptionPosts;
+            ViewData["s_UserAdoptionPosts"] = s_userAdoptionPosts;
 
             return View(userSubscriptions);
         }
 
         [Authorize]
-        public async Task<IActionResult> MyPosts(int? page)
+        public async Task<IActionResult> MyPosts()
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -1017,6 +1181,7 @@ namespace Suket.Controllers
                 .Where(p => p.UserAccountId == currentUser.Id)
                 .Include(p => p.Subscriptions)
                 .OrderByDescending(p => p.Created)
+                .Take(2)
                 .ToListAsync();
 
             // Like counts for each post
@@ -1050,9 +1215,10 @@ namespace Suket.Controllers
             ViewData["UserSubscriptionPosts"] = userSubscriptionPosts;
             ViewData["UserAdoptionPosts"] = userAdoptionPosts;
 
+            /*
             // Using ToPagedList extension method from X.PagedList.Mvc.Core
             int pageNumber = (page ?? 1);
-            int pageSize = 15;
+            int pageSize = 2;//15
             var onePageOfPosts = myPosts.ToPagedList(pageNumber, pageSize);
 
             // Calculate the total count of posts and total page count
@@ -1065,6 +1231,185 @@ namespace Suket.Controllers
             ViewData["CurrentPage"] = pageNumber;
 
             return View(onePageOfPosts);
+            */
+            return View(myPosts);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> LoadMorePosts(int currentPage, int pageSize = 10)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var myPosts = await _context.Post
+                .Where(p => p.UserAccountId == currentUser.Id)
+                .Include(p => p.Subscriptions)
+                .OrderByDescending(p => p.Created)
+                .Skip(currentPage * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // 必要なデータを再計算
+            var subscriptionCounts = myPosts.ToDictionary(
+                p => p.PostId,
+                p => p.Subscriptions.Count);
+
+            var userSubscriptionPosts = new Dictionary<int, bool>();
+            var userAdoptionPosts = new Dictionary<int, bool>();
+            if (currentUser != null)
+            {
+                var userSubscriptions = _context.Subscription
+                    .Where(s => s.UserAccountId == currentUser.Id)
+                    .Select(s => s.PostId);
+
+                var userAdoptions = _context.Adoption
+                    .Where(a => a.UserAccountId == currentUser.Id)
+                    .Select(a => a.PostId);
+
+                userSubscriptionPosts = myPosts.ToDictionary(
+                    p => p.PostId,
+                    p => userSubscriptions.Contains(p.PostId));
+
+                userAdoptionPosts = myPosts.ToDictionary(
+                    p => p.PostId,
+                    p => userAdoptions.Contains(p.PostId));
+            }
+
+            ViewData["SubscriptionCounts"] = subscriptionCounts;
+            ViewData["UserSubscriptionPosts"] = userSubscriptionPosts;
+            ViewData["UserAdoptionPosts"] = userAdoptionPosts;
+
+            bool isLoggedIn = _signInManager.IsSignedIn(User);
+            ViewData["CurrentUser"] = currentUser;
+            ViewData["IsLoggedIn"] = isLoggedIn;
+
+            // モデルを部分ビューに渡す
+            return PartialView("_MyPostsPartial", myPosts);
+        }
+
+        [Authorize]
+        public async Task<IActionResult> MyDashboard()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            // MyPostsとSubscribedPostsのデータを取得...
+            var userSubscriptionsIds = await _context.Subscription
+                .Where(s => s.UserAccountId == currentUser.Id)
+                .Select(s => s.PostId)
+                .ToListAsync();
+
+            var userSubscriptions = await _context.Post
+                .Where(p => userSubscriptionsIds.Contains(p.PostId))
+                .Include(p => p.Subscriptions)
+                .Include(p => p.UserAccount) // Add this line
+                .OrderByDescending(p => p.Created)
+                .ToListAsync();
+
+            var myPosts = await _context.Post
+                .Where(p => p.UserAccountId == currentUser.Id)
+                .Include(p => p.Subscriptions)
+                .OrderByDescending(p => p.Created)
+                .ToListAsync();
+
+            var viewModel = new MyDashboardViewModel
+            {
+                MyPosts = myPosts,
+                SubscribedPosts = userSubscriptions
+            };
+
+            bool isLoggedIn = _signInManager.IsSignedIn(User);
+            ViewData["IsLoggedIn"] = isLoggedIn;
+            return View(viewModel);
+        }
+
+        public async Task<IActionResult> LoadMyPosts(int page = 1)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var pageSize = 10; // 1ページあたりの投稿数
+            var myPosts = await _context.Post
+                .Where(p => p.UserAccountId == currentUser.Id)
+                .Include(p => p.Subscriptions)
+                .OrderByDescending(p => p.Created)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Like counts for each post
+            var subscriptionCounts = myPosts.ToDictionary(
+                p => p.PostId,
+                p => p.Subscriptions.Count);
+
+            var userSubscriptionPosts = new Dictionary<int, bool>();
+            var userAdoptionPosts = new Dictionary<int, bool>();
+            if (currentUser != null)
+            {
+                var p_userSubscriptions = _context.Subscription
+                    .Where(s => s.UserAccountId == currentUser.Id)
+                    .Select(s => s.PostId);
+
+                var userAdoptions = _context.Adoption
+                    .Where(a => a.UserAccountId == currentUser.Id)
+                    .Select(a => a.PostId);
+
+                userSubscriptionPosts = myPosts.ToDictionary(
+                    p => p.PostId,
+                    p => p_userSubscriptions.Contains(p.PostId));
+
+                userAdoptionPosts = myPosts.ToDictionary(
+                    p => p.PostId,
+                    p => userAdoptions.Contains(p.PostId));
+            }
+
+            // Pass like counts and adoption user Ids to the view via ViewData
+            ViewData["SubscriptionCounts"] = subscriptionCounts;
+            ViewData["UserSubscriptionPosts"] = userSubscriptionPosts;
+            ViewData["UserAdoptionPosts"] = userAdoptionPosts;
+
+            bool isLoggedIn = _signInManager.IsSignedIn(User);
+            ViewData["CurrentUser"] = currentUser;
+            ViewData["IsLoggedIn"] = isLoggedIn;
+
+            return PartialView("_MyPostsPartial", myPosts);
+        }
+
+        public async Task<IActionResult> LoadMySubscribedPosts(int page = 1)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userSubscriptionsIds = await _context.Subscription
+                .Where(s => s.UserAccountId == currentUser.Id)
+                .Select(s => s.PostId)
+                .ToListAsync();
+
+            var pageSize = 10; // 1ページあたりの投稿数
+            var userSubscriptions = await _context.Post
+                .Where(p => userSubscriptionsIds.Contains(p.PostId))
+                .Include(p => p.Subscriptions)
+                .Include(p => p.UserAccount) // Add this line
+                .OrderByDescending(p => p.Created)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Like counts for each post
+            var s_subscriptionCounts = userSubscriptions.ToDictionary(
+                p => p.PostId,
+                p => p.Subscriptions.Count);
+
+            var s_userSubscriptionPosts = userSubscriptions.ToDictionary(
+                p => p.PostId,
+                p => true);
+
+            var s_userAdoptionPosts = await _context.Adoption
+                .Where(a => a.UserAccountId == currentUser.Id)
+                .ToDictionaryAsync(a => a.PostId, a => true);
+
+            // Pass like counts and adoption user Ids to the view via ViewData
+            ViewData["SubscriptionCounts"] = s_subscriptionCounts;
+            ViewData["UserSubscriptionPosts"] = s_userSubscriptionPosts;
+            ViewData["UserAdoptionPosts"] = s_userAdoptionPosts;
+
+            bool isLoggedIn = _signInManager.IsSignedIn(User);
+            ViewData["CurrentUser"] = currentUser;
+            ViewData["IsLoggedIn"] = isLoggedIn;
+
+            return PartialView("_MySubscribedPostsPartial", userSubscriptions);
         }
 
 

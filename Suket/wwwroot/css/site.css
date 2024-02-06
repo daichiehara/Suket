@@ -24,6 +24,7 @@ body {
     font-size: 16px;
     height: 100%;
     padding: 0px;
+    margin-bottom:20px;
 }
 
 a.ff-title {
@@ -33,20 +34,25 @@ a.ff-title {
 }
 
 .back-arrow {
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 40px;
     height: 40px;
-    /*background-color: blue;*/
-    border-radius: 50%; /* 丸い形にする */
-    color: white; /* アイコンの色を白にする */
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
     text-align: center;
-    line-height: 40px; /* アイコンを中央に配置 */
-    cursor: pointer; /* マウスオーバー時にポインターを表示 */
 }
 
     .back-arrow .material-symbols-outlined {
-        vertical-align: middle; /* アイコンを垂直方向に中央に配置 */
+        line-height: 40px;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
     }
+
 
 .fixed-button-container {
     position: fixed;
@@ -68,3 +74,48 @@ a.ff-title {
 pre {
     white-space: pre-wrap;
 }
+
+.header-container {
+    display: flex;
+    align-items: center; /* 縦方向の中央揃え */
+    justify-content: flex-start; /* アイテムを左側に寄せる */
+}
+
+/*
+    .header-container .back-arrow {
+        margin-right: 20px;
+    }
+*/
+.modal-body a {
+    color: inherit;
+}
+
+    .modal-body a div {
+        display: flex;
+        align-items: center;
+    }
+
+.modal-body p {
+    margin-bottom: 0px;
+    margin-left: 10px;
+}
+
+.pointer:hover {
+    cursor: pointer;
+}
+
+.profile-icon {
+    margin-right: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+}
+
+.profile-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+    .profile-link:hover {
+        text-decoration: underline;
+    }

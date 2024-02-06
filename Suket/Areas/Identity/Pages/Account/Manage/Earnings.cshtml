@@ -10,7 +10,7 @@
 @if (Model.DetailsSubmitted == true)
 {
     <p>ボタンを押すと外部リンク（stripe.com）にアクセスします。</p>
-    <button id="viewTransactionHistory" onclick="location.href='@Url.Action("StripeDashboard", "Stripe")'" class="btn btn-success">取引履歴を確認</button>
+    <button id="viewTransactionHistory" onclick="location.href='@Url.Action("StripeDashboard", "Stripe")'" class="btn btn-success">ダッシュボード</button>
 }
 else
 {

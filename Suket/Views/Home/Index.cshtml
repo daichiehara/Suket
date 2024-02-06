@@ -1,7 +1,7 @@
 ﻿@model Suket.Models.UserAccount
 
 @{
-    ViewData["Title"] = "Mint SPORTS 得意なスポーツでお小遣いを稼ごう！";
+    ViewData["Title"] = "明日試合に出よう！草野球マッチングサービス";
 }
 
 <head>
@@ -9,6 +9,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="~/css/site.css" />
+    <meta name=”description” content="ミントスポーツは誰でも安心して簡単にスポーツチームのメンバーを募集したり、参加したりできるサービスです。地域・日時・種目などの条件からマッチング！報酬や参加費も設定できます。支払いはクレジットカード・Google Pay・Apple Payに対応しています。野球・サッカー・バスケットボール・フットサル・ゴルフなどのスポーツを募集・参加できます。" />
+
+    <!-- OGPの設定 -->
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="@ViewData["Title"]" />
+    <meta property="og:description" content="ミントスポーツは「明日試合に出れる」マッチングプラットフォームです。" />
+    <meta property="og:url" content="https://mintsports.net" />
+    <meta property="og:site_name" content="Mint SPORTS - ミントスポーツ" />
+    <meta property="og:image" content="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/twittercard.jpg" />
+    <!-- Twitterカードの設定 -->
+    <meta name="twitter:card" content="summary_large_image" />
     <style>
         @@keyframes slideUp {
           from {

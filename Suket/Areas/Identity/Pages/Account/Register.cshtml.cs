@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Suket.Data;
 using Suket.Models;
 
 namespace Suket.Areas.Identity.Pages.Account
@@ -31,13 +32,15 @@ namespace Suket.Areas.Identity.Pages.Account
         private readonly IUserEmailStore<UserAccount> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
         private readonly ISuketEmailSender _emailSender;
+        private readonly ApplicationDbContext _context;
 
         public RegisterModel(
             UserManager<UserAccount> userManager,
             IUserStore<UserAccount> userStore,
             SignInManager<UserAccount> signInManager,
             ILogger<RegisterModel> logger,
-            ISuketEmailSender emailSender)
+            ISuketEmailSender emailSender,
+            ApplicationDbContext context)
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -45,6 +48,7 @@ namespace Suket.Areas.Identity.Pages.Account
             _signInManager = signInManager;
             _logger = logger;
             _emailSender = emailSender;
+            _context = context;
         }
 
         /// <summary>
@@ -141,6 +145,17 @@ namespace Suket.Areas.Identity.Pages.Account
 
                 if (result.Succeeded)
                 {
+                    // UserBalanceの作成と保存
+                    var userBalance = new UserBalance
+                    {
+                        Id = user.Id, // UserAccountのIDを使用
+                        Balance = 0, // 初期バランスを0に設定
+                        LastUpdated = DateTimeOffset.UtcNow // 現在の日時を設定
+                    };
+                    // DbContextにUserBalanceを追加して保存
+                    _context.UserBalance.Add(userBalance);
+                    await _context.SaveChangesAsync();
+
                     _logger.LogInformation("User created a new account with password.");
 
                     // Add user to the 'User' role

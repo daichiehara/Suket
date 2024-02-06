@@ -64,10 +64,22 @@ namespace Suket.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ContactId,Message,Email,Created,UserAccountId")] Contact contact)
+        public async Task<IActionResult> Create([Bind("ContactId,Message,Email,Created,UserAccountId")] Contact contact, string gRecaptchaResponse)
         {
             if (ModelState.IsValid)
             {
+                // トークンの評価を行う
+                
+                var recaptchaResult = new CreateAssessment().createAssessment(gRecaptchaResponse);
+
+                if (!recaptchaResult.IsValid || recaptchaResult.Score < 0.5)
+                {
+                    // reCAPTCHAの検証に失敗した、またはスコアが低い場合
+                    ModelState.AddModelError(string.Empty, "reCAPTCHAの検証に失敗しました、またはスコアが不十分です。");
+                    TempData["Error"] = "reCAPTCHAの検証に失敗しました、またはスコアが不十分です。";
+                    return View(contact);
+                }
+                
                 contact.Created = DateTime.UtcNow;
 
                 var emailAddress = contact.Email;
@@ -92,9 +104,23 @@ namespace Suket.Controllers
                 TempData["SuccessMessage"] = "ありがとうございます。メッセージは送信されました。";
                 return RedirectToAction(nameof(Create));
             }
+            else
+            {
+                foreach (var modelState in ViewData.ModelState.Values)
+                {
+                    foreach (var error in modelState.Errors)
+                    {
+                        TempData["SuccessMessage"]=error.ErrorMessage;
+                    }
+                }
+            }
+            
+
             ViewData["UserAccountId"] = new SelectList(_context.Users, "Id", "Id", contact.UserAccountId);
             return View(contact);
         }
+
+
 
         // GET: Contacts/Edit/5
         [Authorize(Roles = "Admin")]

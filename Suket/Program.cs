@@ -89,6 +89,11 @@ builder.Services.AddHostedService<UpdatePostStatusBackgroundService>();
 
 builder.Services.AddHostedService<TimedHostedService>();
 
+// StripeTransferServiceとDailyTaskServiceをサービスコレクションに追加
+builder.Services.AddHostedService<StripeTransferService>();
+
+builder.Services.AddSingleton<AWSSecretsManagerService>();
+
 // HTTPSリダイレクションの設定を追加
 /*
 if (!builder.Environment.IsDevelopment())
@@ -181,6 +186,11 @@ app.MapControllerRoute(
     name: "isEmailAvailable",
     pattern: "Users/IsEmailAvailable",
     defaults: new { controller = "Users", action = "IsEmailAvailable" });
+
+app.MapControllerRoute(
+    name: "userProfile",
+    pattern: "Users/Balance",
+    defaults: new { controller = "Users", action = "Balance" });
 
 app.MapControllerRoute(
     name: "userProfile",

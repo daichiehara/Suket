@@ -71,10 +71,13 @@ namespace Suket.Resources {
         ///===================
         ///
         ///こちらから詳細をご確認ください。
-        ///https://mintsports.net/Posts/MySubscribedPosts
+        ///&lt;a href=&quot;https://mintsports.net/Posts/MyDashboard&quot;&gt;https://mintsports.net/Posts/MyDashboard&lt;/a&gt;
         ///
         ///こちらから募集者に対してコメントや質問ができます。
-        ///https://mintsports.net/Posts/Details/{3}
+        ///&lt;a href=&quot;https://mintsports.net/Posts/Details/{3}&quot;&gt;https://mintsports.net/Posts/Details/{3}&lt;/a&gt;
+        ///
+        ///こちらから参加までの流れを確認できます。
+        ///&lt;a href=&quot;https://mintsports.net/Home/Guide&quot;&gt;https://mintsports.net/Home/Guide&lt;/a&gt;
         ///
         ///Mint SPORTSサポートチーム に類似しているローカライズされた文字列を検索します。
         /// </summary>

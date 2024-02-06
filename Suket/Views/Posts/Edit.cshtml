@@ -34,16 +34,42 @@
         z-index: 1050;
     }
 
-    .header-container {
+    .multi-way-choice {
         display: flex;
-        align-items: center; /* 縦方向の中央揃え */
-        justify-content: flex-start; /* アイテムを左側に寄せる */
-        margin-bottom:10px;
+        overflow: hidden;
     }
-
-        .header-container .back-arrow {
-            margin-right: 20px; /* アイコンとテキストの間に少しスペースを設ける */
-        }
+    .multi-way-choice input {
+        position: absolute !important;
+        clip: rect(0, 0, 0, 0);
+        height: 1px;
+        width: 1px;
+        border: 0;
+        overflow: hidden;
+    }
+    .multi-way-choice label {
+        background-color: #f0f0f0;
+        color: #999;
+        text-align: center;
+        font-size: 17px;
+        line-height: 1;
+        padding: 9px 18px;
+        margin-right: -1px;
+        border: 1px solid rgba(0, 0, 0, 0.4);
+        transition: all 0.2s ease-in;
+    }
+    .multi-way-choice label:hover {
+        cursor: pointer;
+    }
+    .multi-way-choice input:checked + label {
+        background-color: #6af;
+        color: #222;
+    }
+    .multi-way-choice label:first-of-type {
+        border-radius: 5px 0 0 5px;
+    }
+    .multi-way-choice label:last-of-type {
+        border-radius: 0 5px 5px 0;
+    }
 </style>
 
 <div id="overlay" class="d-none"></div>
@@ -54,12 +80,12 @@
 </div>
 
 <div class="header-container">
-    <span class="back-arrow btn-primary" onclick="history.back()" title="back">
+    <span class="back-arrow btn-primary" onclick="goBackOrHome()" title="back">
         <span class="material-symbols-outlined">
             arrow_back
         </span>
     </span>
-    <h1 class="text-primary m-0">Postの編集</h1>
+    <h1 class="text-primary m-0 ms-2">Postの編集</h1>
 </div>
 
 <h4>Post</h4>
@@ -79,11 +105,14 @@
                 <input asp-for="PeopleCount" class="form-control" />
                 <span asp-validation-for="PeopleCount" class="text-danger"></span>
             </div>
+            <br />
             <div class="form-group">
+                開催地：
                 <label asp-for="Prefecture" class="control-label"></label>
                 <select asp-for="Prefecture" asp-items="Html.GetEnumSelectList(typeof (Prefecture))"></select>
                 <span asp-validation-for="Prefecture" class="text-danger"></span>
             </div>
+            <br />
             <div class="form-group">
                 <label asp-for="Place" class="control-label"></label>
                 <input asp-for="Place" class="form-control" />
@@ -99,39 +128,133 @@
                 <input asp-for="Item" class="form-control" />
                 <span asp-validation-for="Item" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Reward" class="control-label"></label>（円）
-                <input asp-for="Reward" class="form-control" />
-                <span asp-validation-for="Reward" class="text-danger"></span>
+            <!--
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group mt-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <label asp-for="PaymentType" class="control-label"></label>
+                            <span style="cursor:pointer;" class="material-symbols-outlined ms-2 text-secondary" data-bs-toggle="modal" data-bs-target="#rewardHelpModal">
+                                help
+                            </span>
+                        </div>
+                        <div class="multi-way-choice">
+                            @foreach (var option in Html.GetEnumSelectList<PaymentType>())
+                            {
+                                <input type="radio" id="PaymentType_@option.Value" name="PaymentType"
+                                   value="@option.Value"
+                                   @($"{(int)Model.PaymentType}" == option.Value ? "checked" : "") />
+                                <label for="PaymentType_@option.Value">@option.Text</label>
+                            }
+                            <span asp-validation-for="PaymentType" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="col-6 mt-3">
+                    <div class="form-group">
+                        <label asp-for="Reward" class="control-label mb-2">金額</label>（円）
+                        <div class="d-flex align-items-center">
+                            <input asp-for="Reward" class="form-control" />
+                            <p class="mb-0 ms-2">円</p>
+                        </div>
+
+                        <span asp-validation-for="Reward" class="text-danger"></span>
+                    </div>
+                </div>
             </div>
+            -->
             <div class="form-group">
                 <label asp-for="Message" class="control-label"></label>
                 <textarea asp-for="Message" class="form-control" rows="5"></textarea>
                 <span asp-validation-for="Message" class="text-danger"></span>
             </div>
-            <div class="form-group">
+            <div class="form-group mt-2">
                 <label asp-for="Genre" class="control-label"></label>
                 <select asp-for="Genre" asp-items="Html.GetEnumSelectList(typeof (Genre))"></select>
                 <span asp-validation-for="Genre" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                @foreach (var c in System.Enum.GetValues(typeof(State)).OfType<State>())
-                {
-                    var member = c.GetType().GetMember(c.ToString()).First();
-                    var displayAttribute = member.GetCustomAttribute<DisplayAttribute>();
-                    var displayName = displayAttribute?.Name ?? c.ToString();
+            <div class="form-group mt-3 mb-4">
+                <div class="d-flex align-items-center">
+                    <div class="d-flex align-items-center me-3">
+                        <p class="mb-0">状態</p>
+                        <span style="cursor:pointer;" class="material-symbols-outlined ms-2 text-secondary" data-bs-toggle="modal" data-bs-target="#stateHelpModal">
+                            help
+                        </span>
+                    </div>
+                    @foreach (var c in System.Enum.GetValues(typeof(State)).OfType<State>())
+                    {
+                        var member = c.GetType().GetMember(c.ToString()).First();
+                        var displayAttribute = member.GetCustomAttribute<DisplayAttribute>();
+                        var displayName = displayAttribute?.Name ?? c.ToString();
 
-                    <label asp-for="State">@displayName</label>
-                    <input type="radio" asp-for="State" value="@((int)c)" checked="@(Model?.State == c)" />
-                }
+                        <input type="radio" asp-for="State" value="@((int)c)" checked="@(Model?.State == c)" />
+                        <label asp-for="State" class="me-2">@displayName</label>
+                    }
+                </div>
                 <span asp-validation-for="State" class="text-danger"></span>
             </div>
 
             <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
+                <input type="submit" value="Save" class="btn btn-primary mt-3 rounded-pill w-100" />
             </div>
             <input type="hidden" asp-for="UserAccountId" value="@currentUser" />
         </form>
+    </div>
+</div>
+
+<!-- モーダル -->
+<div class="modal fade" id="stateHelpModal" tabindex="-1" aria-labelledby="rewardHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rewardHelpModalLabel">支払い方式について</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- ここに報酬に関する説明文を記述 -->
+                <h5 class="text-primary">募集中</h5>
+                Postが公開され、ユーザーがいつでも応募できる状態です。<br /><br />
+                <h5 class="text-primary">募集終了</h5>
+                Postが非公開になります。<br />
+                採用者または採用予定者がいて、応募者をこれ以上募らない場合に選択してください。<br />
+                開催日時を超えると自動的に募集終了になります。<br /><br />
+                <h5 class="text-primary">中止</h5>
+                「悪天候」「試合がなくなった」など、開催が中止になった場合に選択してください。<br />
+                中止になった場合、全額返金または一部返金される場合があります。詳しくは<a asp-controller="Home" asp-action="Tokutei" class="text-primary">特定商取引法に基づく表記</a>を参照してください。<br />
+                「開催日時直前の中止を繰り返す」「悪意のある中止」が見られた場合は、ペナルティーがあります。
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- モーダル -->
+<div class="modal fade" id="rewardHelpModal" tabindex="-1" aria-labelledby="rewardHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rewardHelpModalLabel">支払い方式について</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- ここに報酬に関する説明文を記述 -->
+                <h5 class="text-primary">参加費</h5>
+                採用者が応募の際に参加費の支払いを行います。<br /><br />
+                参加費は、採用者のイベント参加が確認されたら送金されます。<br /><br />
+                <h5 class="text-primary">報酬</h5>
+                応募者を採用する際に報酬の支払いを行います。<br /><br />
+                報酬は、採用者のイベント参加が確認されたら送金されます。<br /><br />
+                採用者が当日来ないなど、参加が確認できなければ報酬金額は返金されます。
+                <hr />
+                参加費や報酬を無料で行う場合は金額に0と入力してください。
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -146,9 +269,6 @@
     </div>
 }
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
 
 @section Scripts {
     <script>

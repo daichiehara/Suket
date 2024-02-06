@@ -117,10 +117,45 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="CancelBody" xml:space="preserve">
+    <value>この度ご応募していたPostの開催が募集者によってキャンセルされました。
+
+参加費をお支払いの場合、本日中に全額返金いたしますのでご確認ください。
+
+引き続きMint SPORTSをよろしくお願いします。
+
+中止になったPost
+======================
+開催日時：{0}
+開催場所：{1}
+リンク：&lt;a href="{2}"&gt;{2}&lt;/a&gt;
+======================
+
+Mint SPORTSサポートチーム</value>
+  </data>
   <data name="NewCommentNotificationBody" xml:space="preserve">
-    <value>{0}さん!&lt;br&gt;&lt;br&gt;{1}していたPostに{2}がコメントをしました。&lt;br&gt;「{3}」&lt;br&gt;&lt;br&gt;詳細は下記URLからお確かめください。&lt;br&gt;https://mintsports.net/Posts/Details/{4}&lt;br&gt;&lt;br&gt;このメールは返信不可です。&lt;br&gt;&lt;br&gt;引き続き本サービスをよろしくお願いいたします。&lt;br&gt;Mint SPORTSサポートチーム</value>
+    <value>{0}さん!&lt;br&gt;&lt;br&gt;{1}していたPostに{2}がコメントをしました。&lt;br&gt;「{3}」&lt;br&gt;&lt;br&gt;詳細は下記URLからお確かめください。&lt;br&gt;&lt;a href="https://mintsports.net/Posts/Details/{4}"&gt;https://mintsports.net/Posts/Details/{4}&lt;/a&gt;&lt;br&gt;&lt;br&gt;このメールは返信不可です。&lt;br&gt;&lt;br&gt;引き続き本サービスをよろしくお願いいたします。&lt;br&gt;Mint SPORTSサポートチーム</value>
   </data>
   <data name="NewCommentNotificationSubject" xml:space="preserve">
     <value>あなたの投稿に新たなコメントがありました</value>
+  </data>
+  <data name="SubscriptionBody" xml:space="preserve">
+    <value>あなたのPostに応募したユーザーがいます。
+
+ユーザーを確認して、希望通りなら採用してみましょう。
+&lt;a href="https://mintsports.net/Posts/MyDashboard"&gt;https://mintsports.net/Posts/MyDashboard&lt;/a&gt;
+
+応募があったPost
+====================
+開催日時：{0}
+開催場所：{1}
+====================
+
+引き続きMint SPORTSをよろしくお願いします。
+
+Mint SPORTSサポートチーム</value>
+  </data>
+  <data name="SubscriptionSubject" xml:space="preserve">
+    <value>あなたのPostに応募がありました</value>
   </data>
 </root>

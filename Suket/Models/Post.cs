@@ -137,6 +137,15 @@ namespace Suket.Models
         Cancel = 3,
     }
 
+    public enum PaymentType
+    {
+        [Display(Name = "報酬")]
+        RewardToParticipant = 0,
+
+        [Display(Name = "参加費")]
+        FeeFromParticipant = 1,
+    }
+
     public class Post
     {
         public int PostId { get; set; }
@@ -158,6 +167,8 @@ namespace Suket.Models
         [Display(Name = "報酬")]
         [Remote(action: "VerifyReward", controller: "Posts")]
         public int Reward { get; set; }
+        [Display(Name = "支払い方式")]
+        public PaymentType PaymentType { get; set; } = PaymentType.RewardToParticipant;
         [Display(Name = "メッセージ")]
         [StringLength(500, ErrorMessage = "メッセージは500文字以内で入力してください。")]
         public string Message { get; set; }
@@ -190,5 +201,8 @@ namespace Suket.Models
         public virtual ICollection<Confirm> Confirms { get; set; }
         [ValidateNever]
         public virtual ICollection<PaymentRecord> PaymentRecords { get; set; }
+
+        [ValidateNever]
+        public virtual ICollection<TransactionRecord> TransactionRecords { get; set; }
     }
 }

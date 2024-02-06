@@ -61,7 +61,29 @@ namespace Suket.Resources {
         }
         
         /// <summary>
-        ///   {0}さん!&lt;br&gt;&lt;br&gt;{1}していたPostに{2}がコメントをしました。&lt;br&gt;「{3}」&lt;br&gt;&lt;br&gt;詳細は下記URLからお確かめください。&lt;br&gt;https://mintsports.net/Posts/Details/{4}&lt;br&gt;&lt;br&gt;このメールは返信不可です。&lt;br&gt;&lt;br&gt;引き続き本サービスをよろしくお願いいたします。&lt;br&gt;Mint SPORTSサポートチーム に類似しているローカライズされた文字列を検索します。
+        ///   この度ご応募していたPostの開催が募集者によってキャンセルされました。
+        ///
+        ///参加費をお支払いの場合、本日中に全額返金いたしますのでご確認ください。
+        ///
+        ///引き続きMint SPORTSをよろしくお願いします。
+        ///
+        ///中止になったPost
+        ///======================
+        ///開催日時：{0}
+        ///開催場所：{1}
+        ///リンク：&lt;a href=&quot;{2}&quot;&gt;{2}&lt;/a&gt;
+        ///======================
+        ///
+        ///Mint SPORTSサポートチーム に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string CancelBody {
+            get {
+                return ResourceManager.GetString("CancelBody", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   {0}さん!&lt;br&gt;&lt;br&gt;{1}していたPostに{2}がコメントをしました。&lt;br&gt;「{3}」&lt;br&gt;&lt;br&gt;詳細は下記URLからお確かめください。&lt;br&gt;&lt;a href=&quot;https://mintsports.net/Posts/Details/{4}&quot;&gt;https://mintsports.net/Posts/Details/{4}&lt;/a&gt;&lt;br&gt;&lt;br&gt;このメールは返信不可です。&lt;br&gt;&lt;br&gt;引き続き本サービスをよろしくお願いいたします。&lt;br&gt;Mint SPORTSサポートチーム に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string NewCommentNotificationBody {
             get {
@@ -75,6 +97,37 @@ namespace Suket.Resources {
         public static string NewCommentNotificationSubject {
             get {
                 return ResourceManager.GetString("NewCommentNotificationSubject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   あなたのPostに応募したユーザーがいます。
+        ///
+        ///ユーザーを確認して、希望通りなら採用してみましょう。
+        ///&lt;a href=&quot;https://mintsports.net/Posts/MyDashboard&quot;&gt;https://mintsports.net/Posts/MyDashboard&lt;/a&gt;
+        ///
+        ///応募があったPost
+        ///====================
+        ///開催日時：{0}
+        ///開催場所：{1}
+        ///====================
+        ///
+        ///引き続きMint SPORTSをよろしくお願いします。
+        ///
+        ///Mint SPORTSサポートチーム に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string SubscriptionBody {
+            get {
+                return ResourceManager.GetString("SubscriptionBody", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   あなたのPostに応募がありました に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string SubscriptionSubject {
+            get {
+                return ResourceManager.GetString("SubscriptionSubject", resourceCulture);
             }
         }
     }
