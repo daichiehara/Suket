@@ -54,6 +54,9 @@ namespace Suket.Data
                 .HasOne(ua => ua.UserBalance) // UserAccount には UserBalance が一つある
                 .WithOne(ub => ub.UserAccount) // UserBalance には UserAccount が一つある
                 .HasForeignKey<UserBalance>(ub => ub.Id); // UserBalance の Id が外部キー
+
+            modelBuilder.Entity<UserChatRoom>()
+                .HasKey(uc => new { uc.UserAccountId, uc.ChatRoomId });
         }
 
         public DbSet<Suket.Models.Reply>? Reply { get; set; }
@@ -69,6 +72,12 @@ namespace Suket.Data
         public DbSet<Suket.Models.UserBalance>? UserBalance { get; set; }
 
         public DbSet<Suket.Models.TransactionRecord>? TransactionRecord { get; set; }
+
+        public DbSet<Suket.Models.ChatRoom>? ChatRoom { get; set; }
+
+        public DbSet<Suket.Models.Message>? Message { get; set; }
+
+        public DbSet<Suket.Models.UserChatRoom>? UserChatRoom { get; set; }
 
     }
 }

@@ -1,0 +1,434 @@
+﻿@model IEnumerable<Suket.Models.MessageViewModel>
+@{
+    ViewData["Title"] = @ViewBag.ChatPartnerName;
+
+    var jstTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+}
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/3.1.7/signalr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.3.3/dist/purify.min.js"></script>
+
+
+    <style>
+        .container{
+            position:relative;
+            height:90vh;
+        }
+        /* スクロールバー確認の要素 */
+        #chatWindow {
+            position: absolute;
+            top: 8vh;
+            bottom:7vh;
+            width: 100%;
+            overflow-y: auto;
+        }
+
+            /* スクロールの幅の設定 */
+            #chatWindow::-webkit-scrollbar {
+                height: 1rem;
+                width: 4px;
+            }
+
+            /* スクロールの背景の設定 */
+            #chatWindow::-webkit-scrollbar-track {
+                border-radius: 5px;
+                /*background: rgba(110, 108, 108, 0.2);*/
+            }
+
+            /* ドラックできるスクロール部の設定 */
+            #chatWindow::-webkit-scrollbar-thumb {
+                border-radius: 5px;
+                background: black;
+            }
+
+        .sendMessage {
+            position: absolute;
+            bottom: 1rem;
+            left: 0;
+            width: 100%; /* デフォルトは幅100% */
+            padding: 4px; /* 必要に応じて調整してください */
+        }
+
+        @@media (min-width: 1200px) { /* Bootstrapのmdブレークポイントは768px */
+            #chatWindow {
+                width: 50%; /* 画面幅が768px以上の場合は幅を50%に */
+                left: 25%; /* 中央寄せにするため左から25%の位置に設定 */
+                bottom: 20%;
+            }
+
+            .sendMessage {
+                width: 50%; /* 画面幅が768px以上の場合は幅を50%に */
+                left: 25%; /* 中央寄せにするため左から25%の位置に設定 */
+            }
+        }
+    </style>
+</head>
+
+<body class="m-0">
+    <div class="container pb-0">
+        <div class="row">
+            <div class="col-md-2"></div>
+            <div class="col-md-8">
+                <div class="header-container mb-2">
+                    <div class="back-arrow btn-primary me-3" onclick="goBackOrHome()" title="back">
+                        <span class="material-symbols-outlined">
+                            arrow_back
+                        </span>
+                    </div>
+                    <a asp-controller="Users" asp-action="Profile" asp-route-UserName="@ViewBag.UserName" class="d-flex align-items-center text-decoration-none text-black">
+                        @if (!string.IsNullOrWhiteSpace(ViewBag.ProfileImg))
+                        {
+                            <img src="@ViewBag.ProfileImg" alt="Profile Picture" class="profile-icon" />
+                        }
+                        else
+                        {
+                            <img src="https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/kkrn_icon_user_3.png" alt="Profile Picture" class="profile-icon" />
+                        }
+                        <h3 class="mb-0">@ViewBag.ChatPartnerName</h3> <!-- チャット相手の名前を表示 -->
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-2"></div>
+        </div>
+        <div class="row">
+                <div id="chatWindow" class="d-flex flex-column">
+                @{
+                    string? date = Model.FirstOrDefault()?.SentTime.UtcDateTime.ToString("yyyy/M/d");
+                    Console.WriteLine(date);
+                }
+                    @foreach (var message in Model)
+                    {
+                        string today = TimeZoneInfo.ConvertTimeFromUtc(message.SentTime.UtcDateTime, jstTimeZone).ToString("yyyy/M/d");
+                        if(date != today)
+                        {
+                            <div class="text-center">
+                                <div class="badge bg-secondary rounded-pill my-2">@today</div>
+                            </div>
+                            date = today;
+                        }
+                        //date = TimeZoneInfo.ConvertTimeFromUtc(message.SentTime.Date, jstTimeZone).ToString("yyyy/M/d");
+                        <div class="@(message.UserId == ViewBag.CurrentUserId ? "align-self-end" : "align-self-start") my-1">
+                            <div class="d-flex flex-column @(message.UserId == ViewBag.CurrentUserId ? "align-items-end" : "align-items-start")">
+                                <div class="@(message.UserId == ViewBag.CurrentUserId ? "bg-primary text-white" : "bg-light") py-2 px-3 text-wrap text-break text-start" style="max-width: 20rem; white-space:break-spaces; border-radius:20px;">
+                                    @Html.Raw(Html.Encode(message.Content).Replace("&#xA;", "<br />"))
+                                </div>
+                                <span class="text-muted fs-6 lh-1">@TimeZoneInfo.ConvertTimeFromUtc(message.SentTime.UtcDateTime, jstTimeZone).ToString("HH:mm")</span>
+                                </div>
+                        </div>
+                    }
+                </div>
+                <div class="input-group sendMessage">
+                    <textarea id="messageInput" class="form-control" placeholder="メッセージを入力" rows="1"></textarea>
+                    <button id="sendButton" class="btn btn-primary">
+                    <span class="material-symbols-outlined d-flex align-items-center" id="sendIcon">
+                        send
+                    </span>
+                    <div class="spinner-border spinner-border-sm text-light d-none" id="loadingSpinner" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                    </button>
+                </div>
+        </div>
+    </div>
+</body>
+
+@{
+    // Razorビューで最後のメッセージの送信日を取得
+    string? lastMessageSentTime = Model.LastOrDefault()?.SentTime.UtcDateTime.ToString("yyyy/M/d");
+    string? firstMessageSentTime = Model.FirstOrDefault()?.SentTime.UtcDateTime.ToString("yyyy/M/d");
+    //string firstMessageSentTime = TimeZoneInfo.ConvertTimeFromUtc(Model.FirstOrDefault().SentTime.UtcDateTime, jstTimeZone).ToString("yyyy/M/d");
+}
+
+@section Scripts {
+    <script>
+        var connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").build();
+        var currentUserId = '@ViewBag.CurrentUserId'; // 現在のユーザーIDをJavaScript変数に設定
+        var chatRoomId = '@ViewBag.ChatRoomId';
+        var lastMessageDate = new Date('@lastMessageSentTime').toLocaleDateString("ja-JP");
+        var firstMessageDate = new Date('@firstMessageSentTime').toLocaleDateString("ja-JP");
+        
+        console.log(lastMessageDate);
+
+        function addDateBadgeIfNecessary(sentTime) {
+            // sentTimeをJSTに変換して日付のみを取得
+            var sentDate = new Date(sentTime).toLocaleDateString("ja-JP");
+            console.log(sentDate);
+
+            if (lastMessageDate !== sentDate) {
+                var dateBadgeContainer = document.createElement("div");
+                dateBadgeContainer.className = "text-center";
+
+                var dateBadge = document.createElement("div");
+                dateBadge.className = "badge bg-secondary rounded-pill my-2";
+                dateBadge.textContent = sentDate;
+
+                dateBadgeContainer.appendChild(dateBadge);
+                document.getElementById("chatWindow").appendChild(dateBadgeContainer);
+
+                lastMessageDate = sentDate; // 最後に追加されたメッセージの日付を更新
+            }
+        }
+        
+        function addDateBadgeForLoadedMessages(sentTime) {
+            const sentDate = new Date(sentTime).toLocaleDateString("ja-JP");
+            const chatWindow = document.getElementById("chatWindow");
+            const firstChild = chatWindow.firstChild;
+
+            const dateBadgeContainer = document.createElement("div");
+            dateBadgeContainer.className = "text-center";
+
+            const dateBadge = document.createElement("div");
+            dateBadge.className = "badge bg-secondary rounded-pill my-2";
+            dateBadge.textContent = sentDate;
+
+            dateBadgeContainer.appendChild(dateBadge);
+
+            // チャットウィンドウの最初の子要素の前に日付バッジを挿入
+            chatWindow.insertBefore(dateBadgeContainer, firstChild);
+        }
+
+        function addMessageToDOM(message, sentTime, isOwnMessage) {
+            var msgOuterDiv = document.createElement("div");
+            msgOuterDiv.classList.add(isOwnMessage ? "align-self-end" : "align-self-start", "my-1");
+
+            var msgInnerDiv = document.createElement("div");
+            msgInnerDiv.classList.add("d-flex", "flex-column", isOwnMessage ? "align-items-end" : "align-items-start");
+
+            var contentDiv = document.createElement("div");
+            if (isOwnMessage) {
+                contentDiv.classList.add("bg-primary");
+                contentDiv.classList.add("text-white");
+            } else {
+                contentDiv.classList.add("bg-light");
+            }
+            contentDiv.classList.add("py-2");
+            contentDiv.classList.add("px-3");
+            contentDiv.classList.add("text-wrap");
+            contentDiv.classList.add("text-break");
+            //contentDiv.classList.add(isOwnMessage ? "bg-primary text-white" : "bg-light", "py-2", "px-3", "text-wrap", "text-break");
+            contentDiv.innerHTML = DOMPurify.sanitize(message.replace(/\n/g, "<br>"), { ALLOWED_TAGS: ['br'] });
+            contentDiv.style.whiteSpace = "break-spaces";
+            contentDiv.style.borderRadius = "20px";
+            contentDiv.style.maxWidth = "20rem";
+
+            var timeSpan = document.createElement("span");
+            timeSpan.classList.add("text-muted", "fs-6", "lh-1");
+            timeSpan.textContent = new Date(sentTime).toLocaleTimeString("ja-JP", { hour: '2-digit', minute: '2-digit' });
+
+            msgInnerDiv.appendChild(contentDiv);
+            msgInnerDiv.appendChild(timeSpan);
+            msgOuterDiv.appendChild(msgInnerDiv);
+
+            document.getElementById("chatWindow").appendChild(msgOuterDiv);
+            document.getElementById("chatWindow").scrollTop = document.getElementById("chatWindow").scrollHeight;
+        }
+
+        function createMessageElement(message, isOwnMessage) {
+            var msgOuterDiv = document.createElement("div");
+            msgOuterDiv.classList.add(isOwnMessage ? "align-self-end" : "align-self-start", "my-1");
+
+            var msgInnerDiv = document.createElement("div");
+            msgInnerDiv.classList.add("d-flex", "flex-column", isOwnMessage ? "align-items-end" : "align-items-start");
+
+            var contentDiv = document.createElement("div");
+            if (isOwnMessage) {
+                contentDiv.classList.add("bg-primary", "text-white");
+            } else {
+                contentDiv.classList.add("bg-light");
+            }
+            contentDiv.classList.add("py-2", "px-3", "text-wrap", "text-break");
+            contentDiv.innerHTML = DOMPurify.sanitize(message.content.replace(/\n/g, "<br>"), { ALLOWED_TAGS: ['br'] });
+            contentDiv.style.whiteSpace = "break-spaces";
+            contentDiv.style.borderRadius = "20px";
+            contentDiv.style.maxWidth = "20rem";
+
+            var timeSpan = document.createElement("span");
+            timeSpan.classList.add("text-muted","fs-6", "lh-1");
+            timeSpan.textContent = new Date(message.sentTime).toLocaleTimeString("ja-JP", { hour: '2-digit', minute: '2-digit' });
+
+            msgInnerDiv.appendChild(contentDiv);
+            msgInnerDiv.appendChild(timeSpan);
+            msgOuterDiv.appendChild(msgInnerDiv);
+
+            // ここで作成したDOM要素を返します
+            return msgOuterDiv;
+        }
+
+
+
+        // メッセージを受信したら画面に表示
+        connection.on("ReceiveMessage", function (messageDto) {
+            var isOwnMessage = messageDto.userId === currentUserId;
+            var sentTime = new Date(messageDto.sentTime); // サーバーから送られてくるsentTimeをDateオブジェクトに変換
+
+            addDateBadgeIfNecessary(sentTime); // 日付バッジを必要に応じて追加
+
+            var msgOuterDiv = document.createElement("div");
+            msgOuterDiv.classList.add(isOwnMessage ? "align-self-end" : "align-self-start", "my-1");
+
+            var msgInnerDiv = document.createElement("div");
+            msgInnerDiv.classList.add("d-flex", "flex-column", isOwnMessage ? "align-items-end" : "align-items-start");
+
+            var contentDiv = document.createElement("div");
+            contentDiv.classList.add(isOwnMessage ? "bg-primary text-white" : "bg-light", "py-2", "px-3", "text-wrap", "text-break");
+            contentDiv.textContent = messageDto.content;
+            // 改行を<br>に置換し、サニタイズを行う
+            var sanitizedContent = DOMPurify.sanitize(messageDto.content.replace(/\n/g, "<br>"), { ALLOWED_TAGS: ['br'] });
+            contentDiv.innerHTML = sanitizedContent;
+            contentDiv.style.whiteSpace = "break-spaces"; // 連続するスペースと改行を保持
+            contentDiv.style.borderRadius = "20px";
+            contentDiv.style.maxWidth = "20rem";
+
+            var timeSpan = document.createElement("span");
+            timeSpan.classList.add("text-muted", "fs-6", "lh-1");
+            timeSpan.textContent = new Date(messageDto.sentTime).toLocaleTimeString("ja-JP", { hour: '2-digit', minute: '2-digit' });
+
+            msgInnerDiv.appendChild(contentDiv);
+            msgInnerDiv.appendChild(timeSpan);
+            msgOuterDiv.appendChild(msgInnerDiv);
+
+            document.getElementById("chatWindow").appendChild(msgOuterDiv);
+            document.getElementById("chatWindow").scrollTop = document.getElementById("chatWindow").scrollHeight;
+
+            // 現在開いているチャットルームでメッセージを受信した場合、未読メッセージ数をリセット
+            connection.invoke("MarkMessagesAsRead", chatRoomId, currentUserId)
+                .catch(function (err) {
+                    return console.error(err.toString());
+                });
+        });
+
+        document.getElementById("sendButton").addEventListener("click", async function (event) {
+            event.preventDefault(); // フォームのデフォルトの送信動作を阻止
+            var message = document.getElementById("messageInput").value.trim(); // 入力値の前後の空白を削除
+
+            // ボタンを無効化して、スピナーを表示
+            var sendButton = document.getElementById("sendButton");
+            var sendIcon = document.getElementById("sendIcon");
+            var loadingSpinner = document.getElementById("loadingSpinner");
+
+            sendButton.disabled = true; // ボタンを無効化
+            sendIcon.classList.add("d-none"); // sendアイコンを隠す
+            loadingSpinner.classList.remove("d-none"); // スピナーを表示
+
+
+            // メッセージが空でないことを確認
+            if (message) {   
+                try {
+                    await connection.invoke("SendMessage", message, chatRoomId)
+                    // メッセージ送信成功時の処理をここに追加
+                    var sentTime = new Date(); // 送信時間を取得
+                    addDateBadgeIfNecessary(sentTime); // 日付バッジを必要に応じて追加
+                    addMessageToDOM(message, sentTime, true); // ここで、送信したメッセージをDOMに追加する処理を呼び出す
+                    //document.getElementById("messageInput").value = ''; // 入力欄をクリア
+                } catch (err) {
+                    console.error(err.toString());
+                } finally {
+                    // ボタンを再度有効化して、スピナーを隠す
+                    sendButton.disabled = false; // ボタンを有効化
+                    loadingSpinner.classList.add("d-none"); // スピナーを隠す
+                    sendIcon.classList.remove("d-none"); // sendアイコンを表示
+                }
+                document.getElementById("messageInput").value = '';
+            } else {
+                // メッセージが空の場合の処理（エラーメッセージの表示など）
+                console.log("メッセージを入力してください。");
+                // ボタンを再度有効化して、スピナーを隠す
+                sendButton.disabled = false; // ボタンを有効化
+                loadingSpinner.classList.add("d-none"); // スピナーを隠す
+                sendIcon.classList.remove("d-none"); // sendアイコンを表示
+            }
+        });
+
+
+        // SignalR接続を開始
+        connection.start().catch(function (err) {
+            return console.error(err.toString());
+        });
+
+        function prependMessagesToDOM(messages) {
+            const chatWindow = document.getElementById("chatWindow");
+            const previousScrollHeight = chatWindow.scrollHeight;
+            const previousScrollTop = chatWindow.scrollTop;
+
+            messages.forEach((message) => {
+                const isOwnMessage = message.userId === currentUserId;
+                const msgElement = createMessageElement(message, isOwnMessage);
+                chatWindow.insertBefore(msgElement, chatWindow.firstChild); // 先頭にメッセージを追加
+            });
+
+            // 追加後のスクロール位置を調整して、新しいメッセージを追加しても現在の閲覧位置を維持する
+            const newScrollHeight = chatWindow.scrollHeight;
+            chatWindow.scrollTop = previousScrollTop + (newScrollHeight - previousScrollHeight);
+        }
+
+        let currentPage = 0;
+        const pageSize = 30; // 1ページあたりのアイテム数
+        let isLoadingMoreMessages = false;
+        let hasMoreMessages = true; // これ以上読み込むメッセージがあるかどうか
+
+        let previousMessageDate = new Date('@firstMessageSentTime').toLocaleDateString("ja-JP"); // 前のメッセージの日付を格納する変数
+        //let previousMessageDate = @firstMessageSentTime;
+        console.log(previousMessageDate);
+        
+        async function loadMoreMessages() {
+            if (isLoadingMoreMessages || !hasMoreMessages) return;
+            isLoadingMoreMessages = true;
+
+            const previousScrollHeight = document.getElementById("chatWindow").scrollHeight;
+
+            currentPage++; // 次のページを読み込む
+
+            try {
+                const response = await fetch(`/Chat/LoadMoreMessages?chatRoomId=${chatRoomId}&pageNumber=${currentPage}&pageSize=${pageSize}`);
+                const messages = await response.json();
+
+                
+
+                messages.forEach((message) => {
+                    
+                    const messageDate = new Date(message.sentTime).toLocaleDateString("ja-JP");
+
+                    // 前のメッセージと日付が異なる場合のみ日付バッジを挿入
+                    if (messageDate !== previousMessageDate) {
+                        addDateBadgeForLoadedMessages(previousMessageDate);
+                        previousMessageDate = messageDate; // 更新された日付を保持
+                    }
+                    
+                    // メッセージ要素の作成と挿入
+                    const messageElement = createMessageElement(message, message.userId === currentUserId);
+                    document.getElementById("chatWindow").prepend(messageElement);
+                });
+
+                if (messages.length < pageSize) {
+                    hasMoreMessages = false; // これ以上読み込むメッセージがないことを示す
+                    // 読み込むメッセージがなくなったときに日付バッジを追加
+                    addDateBadgeForLoadedMessages(messages[messages.length - 1].sentTime);
+                }
+                // スクロール位置の調整などの後処理...
+                // スクロール位置の調整
+                const newScrollHeight = document.getElementById("chatWindow").scrollHeight;
+                document.getElementById("chatWindow").scrollTop = newScrollHeight - previousScrollHeight;
+
+            } catch (error) {
+                console.error("Failed to load more messages:", error);
+            } finally {
+                isLoadingMoreMessages = false;
+            }
+        }
+
+
+
+        // スクロールイベントリスナーを設定
+        document.getElementById("chatWindow").addEventListener("scroll", function() {
+            if (this.scrollTop === 0) {
+                loadMoreMessages();
+            }
+        });
+
+        // ページ読み込み完了時にチャットウィンドウを最下部にスクロール
+        document.addEventListener("DOMContentLoaded", function () {
+            var chatWindow = document.getElementById("chatWindow");
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        });
+    </script>
+}

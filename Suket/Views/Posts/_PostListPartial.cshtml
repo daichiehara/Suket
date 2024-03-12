@@ -21,8 +21,16 @@
     var isAdopted = userAdoptionPosts?.ContainsKey(a.PostId) == true ? userAdoptionPosts[a.PostId] : false;
 
     <div class="col mt-2">
-        <div class="card h-100">
+        <div class="card h-100 position-relative">
             <div class="card-body">
+                @if (a.State == State.End)
+                {
+                    <div class="end-banner">募集終了</div>
+                }
+                else if (a.State == State.Cancel)
+                {
+                    <div class="cancel-banner">中止</div>
+                }
                 @{
                     var timeDifference = DateTimeOffset.UtcNow - a.Created;
                     string timeDifferenceString;
@@ -103,22 +111,33 @@
                 {
                     <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
                 }
-                <div class="mt-2" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <button class="subscription-button btn btn-outline-primary rounded-pill stretched-link" style="position: relative;" data-post-id="@a.PostId" data-reward="@a.Reward" data-payment-type="@((int)a.PaymentType)">応募</button>
-                        <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
-                    </div>
-
-                    <div style="display: flex; align-items: center; margin-left:auto;">
-                        @if (isAdopted)
+                @if (a.State == State.Recruiting || isAdopted)
+                {
+                    <div class="mt-2" style="display: flex; justify-content: space-between; align-items: center;">
+                        @if (a.State == State.Recruiting)
                         {
-                            <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId" class="btn btn-success stretched-link" style="margin-right:5px; position: relative;">参加確認</a>
+                            <div>
+                                <button class="subscription-button btn btn-outline-primary rounded-pill stretched-link" style="position: relative; width:100px;" data-post-id="@a.PostId" data-reward="@a.Reward" data-payment-type="@((int)a.PaymentType)">応募する</button>
+                                <span class="subscription-count">
+                                    @(
+                                        ((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId]
+                                        )
+                                </span>
+                            </div>
                         }
-                        <span class="material-symbols-outlined pointer stretched-link" style="position: relative;" div data-bs-toggle="modal" data-bs-target="@($"#modal{a.PostId}")">
-                            more_vert
-                        </span>
+                        <div style="display: flex; align-items: center; margin-left:auto; margin-right:1rem;">
+                            @if (isAdopted)
+                            {
+                                <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId" class="btn btn-success stretched-link" style="margin-right:5px; position: relative;">参加確認</a>
+                            }
+
+                        </div>
+
                     </div>
-                </div>
+                }
+                <span class="material-symbols-outlined pointer stretched-link" style="position: absolute; bottom: 15px; right: 5px;" div data-bs-toggle="modal" data-bs-target="@($"#modal{a.PostId}")">
+                    more_vert
+                </span>
 
 
                 <!-- モーダル -->

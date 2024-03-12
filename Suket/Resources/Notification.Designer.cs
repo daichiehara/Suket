@@ -101,6 +101,31 @@ namespace Suket.Resources {
         }
         
         /// <summary>
+        ///   {0}さんからメッセージが届いています。
+        ///
+        ///「{1}」
+        ///
+        ///チャット内容を確認して返信しましょう。
+        ///https://mintspots.net/Chat/ChatRooms
+        ///
+        ///Mint SPORTSサポートチーム に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string NewMessageBody {
+            get {
+                return ResourceManager.GetString("NewMessageBody", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   【メッセージ】{0}さんから届きました。 に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string NewMessageSubject {
+            get {
+                return ResourceManager.GetString("NewMessageSubject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   あなたのPostに応募したユーザーがいます。
         ///
         ///ユーザーを確認して、希望通りなら採用してみましょう。

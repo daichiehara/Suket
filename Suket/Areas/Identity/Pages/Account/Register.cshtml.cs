@@ -170,8 +170,8 @@ namespace Suket.Areas.Identity.Pages.Account
                         protocol: Request.Scheme);
 
                     await _emailSender.SendEmailAsync(Input.Email, "メールアドレスの確認",
-                        $"サインアップありがとうございます。 <br/> <br/>以下のボタンを押すことでメールアドレスの確認が完了し、サービスが利用できるようになります。<br />" +
-                        $"<a href='{HtmlEncoder.Default.Encode(callbackUrl)}' style='display: inline-block; padding: 10px 20px; border-radius: 5px; background-color: #4CAF50; color: white; text-decoration: none;'>メールアドレスを確認する</a><br/>Mint SPORTSサポートチーム");
+                        $"Mint SPORTSアカウントの設定を続けるには、これがあなたのメールアドレスであることを確認してください。 <br /><br />" +
+                        $"<a href='{HtmlEncoder.Default.Encode(callbackUrl)}' style='display: inline-block; padding: 10px 20px; border-radius: 5px; background-color: #4CAF50; color: white; text-decoration: none;'>メールアドレスの確認</a><br /><br />Mint SPORTSサポートチーム");
 
                     
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)

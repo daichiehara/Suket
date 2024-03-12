@@ -1,0 +1,10 @@
+[
+  {
+    "relation": [ "delegate_permission/common.handle_all_urls" ],
+    "target": {
+      "namespace": "Mint SPORTS",
+      "package_name": "net.mintsports.twa",
+      "sha256_cert_fingerprints": [ "F1:9F:07:5D:C3:40:1A:21:00:1C:C8:1D:68:13:09:70:B1:58:B2:39:6E:02:74:44:06:C2:AD:72:13:CD:5B:DB" ]
+    }
+  }
+]

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Suket.Data;
@@ -11,9 +12,11 @@ using Suket.Data;
 namespace Suket.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240215084713_AddChat")]
+    partial class AddChat
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -654,9 +657,6 @@ namespace Suket.Migrations
 
                     b.Property<string>("ChatRoomId")
                         .HasColumnType("text");
-
-                    b.Property<int>("UnreadMessagesCount")
-                        .HasColumnType("integer");
 
                     b.HasKey("UserAccountId", "ChatRoomId");
 

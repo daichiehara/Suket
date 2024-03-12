@@ -14,18 +14,13 @@ using Stripe;
 using System.Text.Json;
 using System.Collections.Generic;
 using System.Net;
+using Microsoft.Extensions.FileProviders;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
 //builder.WebHost.UseUrls("http://0.0.0.0:5000"); // この行を追加
 
-
-/*
-var kvUri = "https://emailsender.vault.azure.net/";
-
-var client = new SecretClient(new Uri(kvUri), new DefaultAzureCredential());
-KeyVaultSecret sendGridKey = await client.GetSecretAsync("SendGridAPIKey");
-*/
 
 static async Task<string> GetSendGridApiKeyFromAWSSecretsManager()
 {
@@ -43,12 +38,16 @@ static async Task<string> GetSendGridApiKeyFromAWSSecretsManager()
     // JSONからディクショナリに変換
     var secrets = JsonSerializer.Deserialize<Dictionary<string, string>>(response.SecretString);
 
+
     // SendGridAPIKeyの値を返す
     return secrets["SendGridAPIKey"];
 }
 
+
 // Add services to the container.
 string? connectionString = builder.Configuration.GetConnectionString("ApplicationDbContext");
+
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
@@ -94,40 +93,12 @@ builder.Services.AddHostedService<StripeTransferService>();
 
 builder.Services.AddSingleton<AWSSecretsManagerService>();
 
-// HTTPSリダイレクションの設定を追加
-/*
-if (!builder.Environment.IsDevelopment())
-{
-    builder.Services.AddHttpsRedirection(options =>
-    {
-        options.RedirectStatusCode = (int)HttpStatusCode.PermanentRedirect;
-        options.HttpsPort = 443;
-    });
-}
-*/
-
-// HSTSの設定を追加
-/*
-builder.Services.AddHsts(options =>
-{
-    options.Preload = true;
-    options.IncludeSubDomains = true;
-    options.MaxAge = TimeSpan.FromDays(365);
-    // options.ExcludedHosts.Add("example.com");
-    // options.ExcludedHosts.Add("www.example.com");
-});
-*/
-
-//builder.Services.Configure<DataProtectionTokenProviderOptions>(opts => opts.TokenLifespan = TimeSpan.FromHours(10));
+// SignalR サービスの追加
+builder.Services.AddSignalR();
 
 
 var app = builder.Build();
 
-// 本番環境では、HSTSを使用
-//app.UseHsts();
-
-// HTTPSリダイレクトを使用
-//app.UseHttpsRedirection();
 
 // Add the seed data
 using (var scope = app.Services.CreateScope())
@@ -165,6 +136,21 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+/*
+// .well-known ディレクトリへのアクセスを許可
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), ".well-known")),
+    RequestPath = "/.well-known",
+    ServeUnknownFileTypes = true // 不明なファイルタイプのサービングを許可
+});
+*/
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapHub<ChatHub>("/chatHub");
+});
 
 
 app.MapControllerRoute(

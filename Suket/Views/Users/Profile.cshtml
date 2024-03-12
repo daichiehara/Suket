@@ -174,6 +174,18 @@
                     {
                         <pre class="mb-0">@Model.Profile</pre>
                     }
+
+                    @if (currentUser?.Id != Model.Id)
+                    {
+                        <div class="card-footer text-center">
+                            <a href="@Url.Action("CreateChatRoom", "Chat", new { userId = Model.Id })" class="btn btn-primary">
+                                <span class="material-symbols-outlined fs-3">
+                                    sms
+                                </span>
+                                <p class="mb-0 fs-6">チャットを開始</p>
+                            </a>
+                        </div>
+                    }
                 </div>
             </div>
         </div>

@@ -41,8 +41,9 @@ namespace Suket
                         var stripeApiKey = await _awsSecretsManagerService.GetSecretAsync("MintSPORTS_secret");
                         StripeConfiguration.ApiKey = stripeApiKey;
 
-                        var ninetyDaysAgo = DateTime.UtcNow.AddDays(-90);
-                        
+                        //var ninetyDaysAgo = DateTime.UtcNow.AddDays(-90);
+                        var ninetyDaysAgo = DateTime.UtcNow.AddDays(-30);
+
                         //test
                         //var ninetyDaysAgo = DateTime.UtcNow.AddMinutes(-10);
 

@@ -21,7 +21,7 @@ namespace Suket.Models
         
         [Display(Name = "表示名")]
         // 入力をアルファベットと数字のみに限定する正規表現
-        [RegularExpression(@"^[a-zA-Z0-9]+$", ErrorMessage = "表示名にはアルファベットと数字のみを使用できます。")]
+        //[RegularExpression(@"^[a-zA-Z0-9]+$", ErrorMessage = "表示名にはアルファベットと数字のみを使用できます。")]
         public string? NickName { get; set; }
 
         [Required]
@@ -55,6 +55,8 @@ namespace Suket.Models
         public ICollection<Review> ReviewsReceived { get; set; }
         public virtual ICollection<PaymentRecord> PaymentRecords { get; set; }
         public virtual ICollection<TransactionRecord> TransactionRecords { get; set; }
+        public virtual ICollection<UserChatRoom> UserChatRooms { get; set; }
+        public virtual ICollection<Message> Messages { get; set; }
 
         public virtual UserBalance UserBalance { get; set; }
     }

@@ -22,11 +22,13 @@ namespace Suket.Controllers
 
         public IActionResult Index()
         {
+            /*
             if (_signInManager.IsSignedIn(User))
             {
                 return RedirectToAction("Index", "Posts");
             }
-
+            */
+            ViewData["HideNavbar"] = true; // navbarを非表示にする
             return View();
         }
 

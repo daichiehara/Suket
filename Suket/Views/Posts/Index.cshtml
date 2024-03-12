@@ -84,7 +84,7 @@
 
     .fixed-button-container {
     position: fixed;
-    bottom: 70px;
+    bottom: 80px;
     right: 30px;
     z-index: 1000; /* 他の要素より上に表示されるようにする */
 }
@@ -288,7 +288,7 @@
 </div>
 
 
-<div class="fixed-button-container d-md-none">
+<div class="fixed-button-container d-lg-none">
     <a asp-action="Create" class="fixed-button btn btn-primary">
         <i class="fas fa-plus"></i>
     </a>
@@ -336,8 +336,16 @@
             var isAdopted = userAdoptionPosts?.ContainsKey(a.PostId) == true ? userAdoptionPosts[a.PostId] : false;
         
             <div class="col mt-2">
-                <div class="card h-100">
+                <div class="card h-100 position-relative">
                     <div class="card-body">
+                        @if (a.State == State.End)
+                        {
+                            <div class="end-banner">募集終了</div>
+                        }
+                        else if (a.State == State.Cancel)
+                        {
+                            <div class="cancel-banner">中止</div>
+                        }
                         @{
                             var timeDifference = DateTimeOffset.UtcNow - a.Created;
                             string timeDifferenceString;
@@ -418,24 +426,31 @@
                         {
                             <div><strong>認証コード：<span style="color:red;">@a.Certification</span></strong></div>
                         }
-                        <div class="mt-2" style="display: flex; justify-content: space-between; align-items: center;">
-                            @if (a.State == State.Recruiting)
+                            @if (a.State == State.Recruiting || isAdopted)
                             {
-                                <div>
-                                    <button class="subscription-button btn btn-outline-primary rounded-pill stretched-link" style="position: relative; width:100px;" data-post-id="@a.PostId" data-reward="@a.Reward" data-payment-type="@((int)a.PaymentType)">応募する</button>
-                                    <span class="subscription-count">@(((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId])</span>
+                                <div class="mt-2" style="display: flex; justify-content: space-between; align-items: center;">
+                                    @if (a.State == State.Recruiting)
+                                    {
+                                        <div>
+                                            <button class="subscription-button btn btn-outline-primary rounded-pill stretched-link" style="position: relative; width:100px;" data-post-id="@a.PostId" data-reward="@a.Reward" data-payment-type="@((int)a.PaymentType)">応募する</button>
+                                            <span class="subscription-count">@(
+                                    ((Dictionary<int, int>)ViewData["SubscriptionCounts"])[a.PostId]
+                                    )</span>
+                                        </div>
+                                    }
+                                    <div style="display: flex; align-items: center; margin-left:auto; margin-right:1rem;">
+                                        @if (isAdopted)
+                                        {
+                                            <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId" class="btn btn-success stretched-link" style="margin-right:5px; position: relative;">参加確認</a>
+                                        }
+
+                                    </div>
+
                                 </div>
                             }
-                            <div style="display: flex; align-items: center; margin-left:auto;">
-                                @if (isAdopted)
-                                {
-                                    <a asp-action="VerifyAttendance" asp-controller="RollCalls" asp-route-id="@a.PostId" class="btn btn-success stretched-link" style="margin-right:5px; position: relative;">参加確認</a>
-                                }
-                                <span class="material-symbols-outlined pointer stretched-link" style="position: relative;" div data-bs-toggle="modal" data-bs-target="@($"#modal{a.PostId}")">
-                                    more_vert
-                                </span>
-                            </div>
-                        </div>
+                            <span class="material-symbols-outlined pointer stretched-link" style="position: absolute; bottom: 15px; right: 5px;" div data-bs-toggle="modal" data-bs-target="@($"#modal{a.PostId}")">
+                                more_vert
+                            </span>
 
 
                         <!-- モーダル -->
@@ -659,11 +674,18 @@
 
                 button.html(spinnerHtml); // ボタンの内容をスピナーに変更
                 button.prop('disabled', true); // ボタンを非活性化
+                //var cancelConfirmation = false; // キャンセル確認の結果を初期化
 
 
                 // 参加費が必要な場合
                 if (paymentType == 1 && postReward > 0 && !button.hasClass('liked')) {
                     var userConfirmation = confirm('応募するには参加費を支払う必要があります。\n採用されない場合は返金されます。\n決済画面へ移動しますか？');
+                    if (!userConfirmation) {
+                        // キャンセルが選択された場合、ボタンの状態を元に戻して処理を中止
+                        button.html(originalText); // ボタンの内容を元に戻す
+                        button.prop('disabled', false); // ボタンを再び活性化
+                        //return;
+                    }
                     if (userConfirmation) {
                         // AjaxリクエストでStripeセッションIDを取得
                         $.ajax({
@@ -678,15 +700,24 @@
                                     // エラー処理
                                     alert(result.error.message);
                                 });
+                            },
+                            complete: function () {
+                                button.html(originalText); // 処理完了後、ボタンの内容を元に戻す
+                                button.prop('disabled', false); // ボタンを再び活性化
                             }
                         });
                         return;
                     }
                 }
                 else{
-                    var cancelConfirmation;
                     if (button.hasClass('liked')){
-                        cancelConfirmation = confirm('すでに応募済みですが、本当に応募を取り消してもよろしいですか？参加費を支払っている場合は返金されません。');
+                        cancelConfirmation = confirm('すでに応募済みですが、本当に応募を取り消してもよろしいですか？ \n参加費を支払っている場合は返金されます。');
+                        if (!cancelConfirmation) {
+                            // キャンセルが選択された場合、ボタンの状態を元に戻して処理を中止
+                            button.html(originalText); // ボタンの内容を元に戻す
+                            button.prop('disabled', false); // ボタンを再び活性化
+                            //return; // 処理を中止
+                        }
                     }
                     if (!button.hasClass('liked') || cancelConfirmation) {
                         $.ajax({
@@ -724,6 +755,7 @@
             var currentPage = 1;
             const pageSize = 10;
 
+            /*
             $('#loadMoreButton').click(function () {
                 currentPage++;
                 $.get('/Posts/Index', { page: currentPage, pageSize: pageSize, genre: '@ViewData["SelectedGenre"]', prefecture: '@ViewData["CurrentPrefecture"]', searchString: '@ViewData["CurrentSearch"]', fromDateTime: '@ViewData["FromDateTime"]', sortByDateTime: '@ViewData["SortByDateTime"]', isAjax: true }, function (data) {
@@ -734,6 +766,24 @@
                         // 投稿をページに追加
                         $('#postsContainer').append(data);
                     }
+                });
+            });
+            */
+            $('#loadMoreButton').click(function () {
+                var $button = $(this); // 'もっと見る'ボタンを変数に格納
+                currentPage++;
+                $.get('/Posts/Index', { page: currentPage, pageSize: pageSize, genre: '@ViewData["SelectedGenre"]', prefecture: '@ViewData["CurrentPrefecture"]', searchString: '@ViewData["CurrentSearch"]', fromDateTime: '@ViewData["FromDateTime"]', sortByDateTime: '@ViewData["SortByDateTime"]', isAjax: true }, function (data) {
+                    if (data.trim() === '') {
+                        // これ以上読み込む投稿がない場合
+                        $button.remove(); // ボタンを削除
+                    } else {
+                        // 投稿をページに追加
+                        $button.before(data); // ボタンの直前に新しいコンテンツを挿入
+                        // 新たな「もっと見る」ボタンを追加する処理は不要（元のボタンがそのまま利用される）
+                    }
+                }).fail(function () {
+                    // エラーが発生した場合、ボタンを再表示
+                    $button.show();
                 });
             });
 

@@ -1,0 +1,24 @@
+{
+  "background_color": "#ffffff",
+  "description": "ミントスポーツは「明日試合に出れる」マッチングプラットフォームです。",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Mint SPORTS - ミントスポーツ",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Mint SPORTS",
+  "start_url": "/Posts",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "https://mintsports-profile-img.s3.ap-northeast-1.amazonaws.com/Spork_Logo_1_1.png",
+      "type": "image/png",
+      "sizes": "791x791"
+    }
+  ],
+  "categories": [
+    "fitness",
+    "health",
+    "sports"
+  ]
+}

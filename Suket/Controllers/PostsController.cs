@@ -155,7 +155,7 @@ namespace Suket.Controllers
             var postsQuery = _context.Post
                 .Include(p => p.UserAccount)
                 .Include(p => p.Subscriptions)
-                .Where(p => (p.State != State.End) && (p.State != State.Cancel))
+                //.Where(p => (p.State != State.End) && (p.State != State.Cancel))
                 .OrderByDescending(p => p.Created);
 
             // Filter posts by genre
@@ -755,11 +755,46 @@ namespace Suket.Controllers
 
             var subscription = await _context.Subscription.FirstOrDefaultAsync(l => l.PostId == id && l.UserAccountId == user.Id);
 
+            var stripeApiKey = await _awsSecretsManagerService.GetSecretAsync("MintSPORTS_secret");
+            StripeConfiguration.ApiKey = stripeApiKey;
+
             if (post.State == State.Recruiting)
             {
                 if (subscription != null && (post.PaymentType == PaymentType.RewardToParticipant || post.Reward == 0))
                 {
                     // If the user has already liked this post, remove the like
+                    _context.Subscription.Remove(subscription);
+                }
+                else if(subscription != null && (post.PaymentType == PaymentType.FeeFromParticipant || post.Reward != 0))
+                {
+                    // PaymentRecordからPaymentIntentIDを取得
+                    var paymentRecord = await _context.PaymentRecord
+                        .FirstOrDefaultAsync(pr => pr.PostId == id && pr.UserAccountId == user.Id && !pr.Refunded);
+
+                    if (paymentRecord != null)
+                    {
+                        // Stripeの返金処理
+                        var refundService = new RefundService();
+                        var refundOptions = new RefundCreateOptions
+                        {
+                            PaymentIntent = paymentRecord.PaymentIntentId
+                        };
+
+                        try
+                        {
+                            var refund = await refundService.CreateAsync(refundOptions);
+                            paymentRecord.Refunded = true;
+                            await _context.SaveChangesAsync(); // データベースの変更を保存
+                            // 返金成功の処理（ログ記録等）
+                            Console.WriteLine("Refund successful");
+                        }
+                        catch (StripeException e)
+                        {
+                            // 返金失敗の処理（ログ記録等）
+                            Console.WriteLine($"Refund failed: {e.Message}");
+                            return BadRequest();
+                        }
+                    }
                     _context.Subscription.Remove(subscription);
                 }
                 else
@@ -1065,7 +1100,8 @@ namespace Suket.Controllers
                 var userIds = session.Metadata["user_ids"].Split(',').ToList();
                 var postId = int.Parse(session.Metadata["post_id"]);
 
-                var post = await _context.Post.FindAsync(postId);
+                //var post = await _context.Post.FindAsync(postId);
+                var post = await _context.Post.Include(p => p.UserAccount).FirstOrDefaultAsync(p => p.PostId == postId);
                 if (post == null)
                 {
                     _logger.LogWarning($"Post with ID {postId} not found.");
@@ -1105,6 +1141,14 @@ namespace Suket.Controllers
                             PostId = postId
                         };
                         _context.Add(subscription);
+
+                        // 日本標準時のタイムゾーンを取得
+                        var japanTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+                        // UTC時間を日本時間に変換
+                        var japanTime = TimeZoneInfo.ConvertTimeFromUtc(post.Time.UtcDateTime, japanTimeZone).ToString("yyyy/MM/dd HH:mm");
+                        var subject = Resources.Notification.SubscriptionSubject;
+                        var body = string.Format(Resources.Notification.SubscriptionBody, japanTime, post.Place);
+                        await _emailSender.SendEmailAsync(post.UserAccount.Email, subject, body);
                     }
 
                     await _context.SaveChangesAsync();

@@ -139,6 +139,19 @@ Mint SPORTSサポートチーム</value>
   <data name="NewCommentNotificationSubject" xml:space="preserve">
     <value>あなたの投稿に新たなコメントがありました</value>
   </data>
+  <data name="NewMessageBody" xml:space="preserve">
+    <value>{0}さんからメッセージが届いています。
+
+「{1}」
+
+チャット内容を確認して返信しましょう。
+https://mintspots.net/Chat/ChatRooms
+
+Mint SPORTSサポートチーム</value>
+  </data>
+  <data name="NewMessageSubject" xml:space="preserve">
+    <value>【メッセージ】{0}さんから届きました。</value>
+  </data>
   <data name="SubscriptionBody" xml:space="preserve">
     <value>あなたのPostに応募したユーザーがいます。
 
